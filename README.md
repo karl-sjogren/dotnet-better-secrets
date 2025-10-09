@@ -5,11 +5,30 @@ from the command line.
 
 ## Installation
 
-> dotnet tool install -g Karls.BetterSecretsTool
+As a global tool:
+
+```bash
+dotnet tool install -g Karls.BetterSecretsTool
+```
+
+As a local tool:
+
+```bash
+dotnet new tool-manifest # if you don't have a manifest already
+dotnet tool install Karls.BetterSecretsTool
+```
 
 ## Usage
 
 Run `better-secrets` in the directory of your project to manage its user secrets.
+
+As a global tool:
+
+```bash
+better-secrets
+```
+
+As a local tool:
 
 ```bash
 dotnet better-secrets
