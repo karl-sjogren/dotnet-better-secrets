@@ -10,6 +10,11 @@ public static class Program {
         var directory = args.Length > 0 ? args[0] : fileSystem.Directory.GetCurrentDirectory();
         var id = ResolveId(directory, fileSystem);
 
+        if(string.IsNullOrWhiteSpace(id)) {
+            AnsiConsole.MarkupLine("[red]Error:[/] Could not determine User Secrets ID for the selected project.");
+            return;
+        }
+
         var secretStore = new SecretsStore(id!, fileSystem);
 
         while(true) {
@@ -48,7 +53,7 @@ public static class Program {
                 secretStore.Remove(key);
             } else if(prompt == "S") {
                 var key = SelectKey(secretStore, "[grey]Select a secret to show:[/]");
-                AnsiConsole.MarkupLineInterpolated($"[grey]Value for [green]{key}[/]:");
+                AnsiConsole.MarkupLineInterpolated($"[grey]Value for [green]{key}[/][/]:");
                 AnsiConsole.MarkupLineInterpolated($"[yellow]{secretStore[key]}[/]");
                 AnsiConsole.MarkupLine("[grey]Press any key to continue...[/]");
                 AnsiConsole.Console.Input.ReadKey(true);
