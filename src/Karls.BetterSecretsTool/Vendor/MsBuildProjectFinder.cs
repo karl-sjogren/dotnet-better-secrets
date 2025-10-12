@@ -5,9 +5,6 @@ using System.IO.Abstractions;
 
 namespace Karls.BetterSecretsTool.Vendor;
 
-#pragma warning disable IO0006 // Replace Path class with IFileSystem.Path for improved testability
-#pragma warning disable IO0002 // Replace File class with IFileSystem.File for improved testability
-
 internal sealed class MsBuildProjectFinder {
     private readonly string _directory;
     private readonly IFileSystem _fileSystem;
@@ -19,7 +16,7 @@ internal sealed class MsBuildProjectFinder {
         _fileSystem = fileSystem ?? new FileSystem();
     }
 
-    public string FindMsBuildProject(string project) {
+    public string FindMsBuildProject(string? project) {
         var projectPath = project ?? _directory;
 
         if(!_fileSystem.Path.IsPathRooted(projectPath)) {
@@ -32,18 +29,18 @@ internal sealed class MsBuildProjectFinder {
                 .ToList();
 
             if(projects.Count > 1) {
-                throw new FileNotFoundException("SecretsHelpersResources.FormatError_MultipleProjectsFound(projectPath)");
+                throw new FileNotFoundException("Multiple projects found. Please specify a project file.");
             }
 
             if(projects.Count == 0) {
-                throw new FileNotFoundException("SecretsHelpersResources.FormatError_NoProjectsFound(projectPath)");
+                throw new FileNotFoundException("No projects found.");
             }
 
             return projects[0];
         }
 
         if(!_fileSystem.File.Exists(projectPath)) {
-            throw new FileNotFoundException("SecretsHelpersResources.FormatError_ProjectPath_NotFound(projectPath)");
+            throw new FileNotFoundException("Project file not found.");
         }
 
         return projectPath;

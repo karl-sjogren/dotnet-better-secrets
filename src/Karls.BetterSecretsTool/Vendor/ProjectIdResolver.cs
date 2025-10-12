@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Text;
+using Karls.BetterSecretsTool.Contracts;
 
 namespace Karls.BetterSecretsTool.Vendor;
 
@@ -11,28 +12,17 @@ namespace Karls.BetterSecretsTool.Vendor;
 /// This API supports infrastructure and is not intended to be used
 /// directly from your code. This API may change or be removed in future releases.
 /// </summary>
-internal sealed class ProjectIdResolver {
+internal sealed class ProjectIdResolver : IProjectIdResolver {
     private const string _defaultConfig = "Debug";
     private readonly string? _targetsFile;
-    private readonly string _workingDirectory;
     private readonly IFileSystem _fileSystem;
 
-    public ProjectIdResolver(string workingDirectory, IFileSystem? fileSystem = null) {
-        _workingDirectory = workingDirectory;
+    public ProjectIdResolver(IFileSystem? fileSystem = null) {
         _fileSystem = fileSystem ?? new FileSystem();
         _targetsFile = FindTargetsFile();
     }
 
-    public string? Resolve(string project, string configuration) {
-        var finder = new MsBuildProjectFinder(_workingDirectory, _fileSystem);
-        string projectFile;
-        try {
-            projectFile = finder.FindMsBuildProject(project);
-        } catch(Exception) {
-            //_reporter.Error(ex.Message);
-            return null;
-        }
-
+    public string? Resolve(string projectFile, string configuration) {
         configuration = !string.IsNullOrEmpty(configuration)
             ? configuration
             : _defaultConfig;
@@ -80,22 +70,19 @@ internal sealed class ProjectIdResolver {
             process.WaitForExit();
 
             if(process.ExitCode != 0) {
-                //_reporter.Error($"Exit code: {process.ExitCode}");
-                //_reporter.Error(SecretsHelpersResources.FormatError_ProjectFailedToLoad(projectFile));
-                return null;
+                throw new InvalidOperationException($"Could not load the MSBuild project '{_fileSystem.Path.GetFileName(projectFile)}'");
             }
 
             if(!_fileSystem.File.Exists(outputFile)) {
-                //_reporter.Error(SecretsHelpersResources.FormatError_ProjectMissingId(projectFile));
-                return null;
+                throw new InvalidOperationException($"Could not find the global property 'UserSecretsId' in MSBuild project '{_fileSystem.Path.GetFileName(projectFile)}'.");
             }
 
-            var id = _fileSystem.File.ReadAllText(outputFile)?.Trim();
-            if(string.IsNullOrEmpty(id)) {
-                //_reporter.Error(SecretsHelpersResources.FormatError_ProjectMissingId(projectFile));
+            var userSecretsId = _fileSystem.File.ReadAllText(outputFile)?.Trim();
+            if(string.IsNullOrEmpty(userSecretsId)) {
+                throw new InvalidOperationException($"Could not find the global property 'UserSecretsId' in MSBuild project '{_fileSystem.Path.GetFileName(projectFile)}'.");
             }
 
-            return id;
+            return userSecretsId;
         } finally {
             TryDelete(outputFile);
         }
@@ -113,8 +100,7 @@ internal sealed class ProjectIdResolver {
 
         var targetPath = searchPaths.Select(p => _fileSystem.Path.Combine(p!, "SecretManager.targets")).FirstOrDefault(_fileSystem.File.Exists);
         if(targetPath == null) {
-            //_reporter.Error("Fatal error: could not find SecretManager.targets");
-            return null;
+            throw new InvalidOperationException("Fatal error: could not find SecretManager.targets");
         }
 
         return targetPath;

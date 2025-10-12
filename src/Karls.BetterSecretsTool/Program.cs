@@ -5,26 +5,45 @@ using Spectre.Console;
 namespace Karls.BetterSecretsTool;
 
 public static class Program {
-    public static void Main(string[] args) {
-        var fileSystem = new FileSystem();
-        var directory = args.Length > 0 ? args[0] : fileSystem.Directory.GetCurrentDirectory();
-        var id = ResolveId(directory, fileSystem);
+    internal static IFileSystem FileSystem { get; set; } = new FileSystem();
+    internal static IAnsiConsole Console { get; set; } = AnsiConsole.Create(new());
 
-        if(string.IsNullOrWhiteSpace(id)) {
-            AnsiConsole.MarkupLine("[red]Error:[/] Could not determine User Secrets ID for the selected project.");
+    public static void Main(string[] args) {
+        var options = ParseArguments(args);
+
+        if(options.ShowHelp) {
+            RenderHelpMessage();
             return;
         }
 
-        var secretStore = new SecretsStore(id!, fileSystem);
+        var id = options.UserSecretsId;
+
+        if(string.IsNullOrWhiteSpace(id)) {
+            var directory = options.WorkingDirectory;
+
+            if(!FileSystem.Directory.Exists(directory)) {
+                Console.MarkupLineInterpolated($"[red]Error:[/] The specified directory '[grey]{directory}[/]' does not exist.");
+                return;
+            }
+
+            id = ResolveId(directory, options.BuildConfiguration);
+        }
+
+        if(string.IsNullOrWhiteSpace(id)) {
+            Console.MarkupLine("[red]Error:[/] Could not determine User Secrets ID for the selected project.");
+            return;
+        }
+
+        var secretStore = new SecretsStore(id, FileSystem);
 
         while(true) {
             RenderTable(secretStore);
 
-            AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine("[grey]Type [green]A[/] to add, [green]E[/] to edit or [green]D[/] to delete secrets. Type [green]S[/] to show single value.[/]");
-            AnsiConsole.MarkupLine("[grey]Press [green]Enter[/] to exit[/]");
+            Console.WriteLine();
+            Console.MarkupLine("[grey]Type [green]A[/] to add, [green]E[/] to edit or [green]D[/] to delete secrets. Type [green]S[/] to show single value.[/]");
+            Console.MarkupLine("[grey]Press [green]Enter[/] to exit[/]");
 
-            var prompt = AnsiConsole.Console.Input.ReadKey(false).GetValueOrDefault().KeyChar.ToString();
+            var prompt = Console.Input.ReadKey(false).GetValueOrDefault().KeyChar.ToString();
 
             prompt = prompt.Trim().ToUpperInvariant();
             if(string.IsNullOrWhiteSpace(prompt) || prompt == "Q") {
@@ -32,33 +51,52 @@ public static class Program {
             }
 
             try {
-                AnsiConsole.Clear();
+                Console.Clear();
             } catch {
                 // Can fail in some environments, e.g. when piping output to a file or running from VSCode
             }
 
             if(prompt == "A") {
-                var key = AnsiConsole.Ask<string>("[grey]Enter secret [green]key[/][/]:");
-                var value = AnsiConsole.Ask<string>("[grey]Enter secret [yellow]value[/][/]:");
+                var key = Console.Ask<string>("[grey]Enter secret [green]key[/][/]:");
+                var value = Console.Ask<string>("[grey]Enter secret [yellow]value[/][/]:");
                 secretStore.Set(key, value);
             } else if(prompt == "E") {
                 var key = SelectKey(secretStore, "[grey]Select a secret to edit:[/]");
 
-                AnsiConsole.MarkupLine($"[grey]Editing secret [green]{key}[/][/].");
-                AnsiConsole.MarkupLineInterpolated($"[grey]Current value: [yellow]{secretStore[key]}[/][/]");
-                var newValue = AnsiConsole.Ask<string>("[grey]Enter new value:[/]");
+                Console.MarkupLine($"[grey]Editing secret [green]{key}[/][/].");
+                Console.MarkupLineInterpolated($"[grey]Current value: [yellow]{secretStore[key]}[/][/]");
+                var newValue = Console.Ask<string>("[grey]Enter new value:[/]");
                 secretStore.Set(key, newValue);
             } else if(prompt == "D") {
                 var key = SelectKey(secretStore, "[grey]Select a secret to delete:[/]");
                 secretStore.Remove(key);
             } else if(prompt == "S") {
                 var key = SelectKey(secretStore, "[grey]Select a secret to show:[/]");
-                AnsiConsole.MarkupLineInterpolated($"[grey]Value for [green]{key}[/][/]:");
-                AnsiConsole.MarkupLineInterpolated($"[yellow]{secretStore[key]}[/]");
-                AnsiConsole.MarkupLine("[grey]Press any key to continue...[/]");
-                AnsiConsole.Console.Input.ReadKey(true);
+                Console.MarkupLineInterpolated($"[grey]Value for [green]{key}[/][/]:");
+                Console.MarkupLineInterpolated($"[yellow]{secretStore[key]}[/]");
+                Console.MarkupLine("[grey]Press any key to continue...[/]");
+                Console.Input.ReadKey(true);
             }
         }
+    }
+
+    private static void RenderHelpMessage() {
+        Console.MarkupLine("[bold]Karls Better Secrets Tool[/]");
+        Console.MarkupLine("An easier way to manage your .NET User Secrets from the command line.");
+        Console.WriteLine();
+        Console.MarkupLine("Usage: [green]better-secrets[/] [yellow]<working-directory>[/] [grey][[options]][/]");
+        Console.WriteLine();
+        Console.MarkupLine("Arguments:");
+        Console.MarkupLine("  [yellow]<working-directory>[/]  The working directory containing the .NET project to manage secrets for. If not specified, the current directory will be used.");
+        Console.WriteLine();
+        Console.MarkupLine("Options:");
+        Console.MarkupLine("  [green]-i[/], [green]--id[/]             The User Secrets ID to use. If not specified, the ID will be resolved from the project in the working directory.");
+        Console.MarkupLine("  [green]-c[/], [green]--configuration[/]  The build configuration to use when resolving the project. Defaults to 'Debug'.");
+        Console.MarkupLine("  [green]-h[/], [green]--help[/]           Show this help message.");
+        Console.WriteLine();
+        Console.MarkupLine("Examples:");
+        Console.MarkupLine("  [grey]better-secrets -d ./MyProject[/]        Manage secrets for the project in ./MyProject");
+        Console.MarkupLine("  [grey]better-secrets -i <user-secrets-id>[/]  Manage secrets for the specified User Secrets ID");
     }
 
     private static string SelectKey(SecretsStore secretStore, string title) {
@@ -69,7 +107,7 @@ public static class Program {
                 .MoreChoicesText("[grey](Move up and down to reveal more secrets)[/]")
                 .AddChoices([.. secretStore.AsSortedEnumerable().Select(kvp => kvp.Key)]);
 
-        return AnsiConsole.Prompt(selection);
+        return Console.Prompt(selection);
     }
 
     private static void RenderTable(SecretsStore secretStore) {
@@ -83,7 +121,7 @@ public static class Program {
         var longestKey = secretStore.AsEnumerable().Select(kvp => kvp.Key.Length).DefaultIfEmpty(0).Max();
 
         try {
-            AnsiConsole.Clear();
+            Console.Clear();
         } catch {
             // Can fail in some environments, e.g. when piping output to a file or running from VSCode
         }
@@ -107,11 +145,52 @@ public static class Program {
             table.AddRow(keyMarkup, valueMarkup);
         }
 
-        AnsiConsole.Write(table);
+        Console.Write(table);
     }
 
-    private static string? ResolveId(string workingDirectory, IFileSystem? fileSystem = null) {
-        var resolver = new ProjectIdResolver(workingDirectory, fileSystem);
-        return resolver.Resolve("", "Debug");
+    private static string? ResolveId(string workingDirectory, string? buildConfiguration) {
+        var resolver = new ProjectIdResolver(FileSystem);
+
+        var finder = new MsBuildProjectFinder(workingDirectory, FileSystem);
+        string projectFile;
+        try {
+            projectFile = finder.FindMsBuildProject("");
+        } catch(Exception) {
+            return null;
+        }
+
+        return resolver.Resolve(projectFile, buildConfiguration ?? "Debug");
+    }
+
+    private static CommandLineOptions ParseArguments(string[] args) {
+        string? workingDirectory = null;
+        string? userSecretsId = null;
+        string? configuration = null;
+
+        for(var i = 0; i < args.Length; i++) {
+            var arg = args[i];
+            if(!arg.StartsWith("-", StringComparison.Ordinal)) {
+                workingDirectory = args[i];
+            } else if(arg == "-i" || arg == "--id") {
+                if(i + 1 < args.Length) {
+                    userSecretsId = args[i + 1];
+                    i++;
+                }
+            } else if(arg == "-c" || arg == "--configuration") {
+                if(i + 1 < args.Length) {
+                    configuration = args[i + 1];
+                    i++;
+                }
+            } else if(arg == "-h" || arg == "--help") {
+                return new CommandLineOptions(null, null, null, true);
+            }
+        }
+
+        workingDirectory ??= FileSystem.Directory.GetCurrentDirectory();
+        configuration ??= "Debug";
+
+        return new CommandLineOptions(workingDirectory, userSecretsId, configuration, false);
     }
 }
+
+public record CommandLineOptions(string? WorkingDirectory, string? UserSecretsId, string? BuildConfiguration, bool ShowHelp);

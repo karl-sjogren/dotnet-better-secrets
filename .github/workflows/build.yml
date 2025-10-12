@@ -161,12 +161,51 @@ jobs:
       run: dotnet restore --verbosity minimal
 
     - name: Publish application
-      run: dotnet publish --output ./artifacts --configuration Release
+      run: dotnet pack --output ./artifacts --configuration Release ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj
       working-directory: ./
 
-    - name: Upload build artifacts
+    - name: Upload packages
       uses: actions/upload-artifact@v4
       with:
-        name: publish-artifacts
-        path: ./artifacts/
+        name: packages
+        path: ./artifacts/*.nupkg
         if-no-files-found: error
+
+
+  publish:
+    name: NuGet Publish
+    needs: net-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      id-token: write
+
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v5
+      with:
+        sparse-checkout: |
+          global.json
+        sparse-checkout-cone-mode: false
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v5
+      with:
+        name: packages
+        path: ./artifacts/
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        global-json-file: global.json
+
+    - name: NuGet login (OIDC → temp API key)
+      uses: NuGet/login@v1
+      id: login
+      with:
+        user: ${{ secrets.NUGET_PROFILE }}
+
+    - name: Publish package to NuGet.org
+      run: dotnet nuget push artifacts/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+      working-directory: ./

@@ -5,6 +5,7 @@ using System.IO.Abstractions;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using Karls.BetterSecretsTool.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 
@@ -14,22 +15,21 @@ namespace Karls.BetterSecretsTool.Vendor;
 /// This API supports infrastructure and is not intended to be used
 /// directly from your code. This API may change or be removed in future releases.
 /// </summary>
-public class SecretsStore {
-    private readonly string _secretsFilePath;
+public class SecretsStore : ISecretStore {
     private readonly IDictionary<string, string> _secrets;
     private readonly IFileSystem _fileSystem;
+    private readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
     public SecretsStore(string userSecretsId, IFileSystem? fileSystem = null) {
         ArgumentNullException.ThrowIfNull(userSecretsId);
         _fileSystem = fileSystem ?? new FileSystem();
 
-        _secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+        SecretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
 
         // workaround bug in configuration
-        var secretDir = _fileSystem.Path.GetDirectoryName(_secretsFilePath);
+        var secretDir = _fileSystem.Path.GetDirectoryName(SecretsFilePath);
         _fileSystem.Directory.CreateDirectory(secretDir!);
 
-        //reporter.Verbose(Resources.FormatMessage_Secret_File_Path(_secretsFilePath));
         _secrets = Load(userSecretsId);
     }
 
@@ -42,7 +42,7 @@ public class SecretsStore {
     public int Count => _secrets.Count;
 
     // For testing.
-    internal string SecretsFilePath => _secretsFilePath;
+    internal string SecretsFilePath { get; }
 
     public bool ContainsKey(string key) => _secrets.ContainsKey(key);
 
@@ -55,16 +55,14 @@ public class SecretsStore {
     public void Set(string key, string value) => _secrets[key] = value;
 
     public void Remove(string key) {
-        if(_secrets.ContainsKey(key)) {
-            _secrets.Remove(key);
-        }
+        _secrets.Remove(key);
     }
 
     public virtual void Save() {
-        _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(_secretsFilePath)!);
+        _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(SecretsFilePath)!);
 
         var contents = new Dictionary<string, string>();
-        if(_secrets != null) {
+        if(_secrets is not null) {
             foreach(var secret in _secrets.AsEnumerable()) {
                 contents[secret.Key] = secret.Value;
             }
@@ -73,16 +71,16 @@ public class SecretsStore {
         // Create a temp file with the correct Unix file mode before moving it to the expected _filePath.
         if(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             var tempFilename = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), _fileSystem.Path.GetRandomFileName());
-            _fileSystem.File.Move(tempFilename, _secretsFilePath, overwrite: true);
+            _fileSystem.File.Move(tempFilename, SecretsFilePath, overwrite: true);
         }
 
-        var jsonContent = JsonSerializer.Serialize(contents, new JsonSerializerOptions { WriteIndented = true });
-        _fileSystem.File.WriteAllText(_secretsFilePath, jsonContent, Encoding.UTF8);
+        var jsonContent = JsonSerializer.Serialize(contents, _jsonSerializerOptions);
+        _fileSystem.File.WriteAllText(SecretsFilePath, jsonContent, Encoding.UTF8);
     }
 
     protected virtual IDictionary<string, string> Load(string userSecretsId) {
         return new ConfigurationBuilder()
-            .AddJsonFile(_secretsFilePath, optional: true)
+            .AddJsonFile(SecretsFilePath, optional: true)
             .Build()
             .AsEnumerable()
             .Where(i => i.Value != null)
