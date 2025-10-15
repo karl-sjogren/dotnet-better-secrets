@@ -22,12 +22,13 @@ internal sealed class ProjectIdResolver : IProjectIdResolver {
         _targetsFile = FindTargetsFile();
     }
 
-    public string? Resolve(string projectFile, string configuration) {
+    public ResolveResult Resolve(string projectFile, string configuration) {
         configuration = !string.IsNullOrEmpty(configuration)
             ? configuration
             : _defaultConfig;
 
-        var outputFile = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), _fileSystem.Path.GetRandomFileName());
+        var secretIdOutputFile = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), _fileSystem.Path.GetRandomFileName());
+        var secretKeyVaultOutputFile = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), _fileSystem.Path.GetRandomFileName());
         try {
             var psi = new ProcessStartInfo {
                 FileName = DotNetMuxer.MuxerPathOrDefault(),
@@ -40,7 +41,8 @@ internal sealed class ProjectIdResolver : IProjectIdResolver {
                         projectFile,
                         "/nologo",
                         "/t:_ExtractUserSecretsMetadata", // defined in SecretManager.targets
-                        "/p:_UserSecretsMetadataFile=" + outputFile,
+                        "/p:_UserSecretsMetadataFile=" + secretIdOutputFile,
+                        "/p:_UserSecretsKeyVaultMetadataFile=" + secretKeyVaultOutputFile,
                         "/p:Configuration=" + configuration,
                         "/p:CustomAfterMicrosoftCommonTargets=" + _targetsFile,
                         "/p:CustomAfterMicrosoftCommonCrossTargetingTargets=" + _targetsFile,
@@ -73,18 +75,24 @@ internal sealed class ProjectIdResolver : IProjectIdResolver {
                 throw new InvalidOperationException($"Could not load the MSBuild project '{_fileSystem.Path.GetFileName(projectFile)}'");
             }
 
-            if(!_fileSystem.File.Exists(outputFile)) {
+            if(!_fileSystem.File.Exists(secretIdOutputFile)) {
                 throw new InvalidOperationException($"Could not find the global property 'UserSecretsId' in MSBuild project '{_fileSystem.Path.GetFileName(projectFile)}'.");
             }
 
-            var userSecretsId = _fileSystem.File.ReadAllText(outputFile)?.Trim();
+            var userSecretsId = _fileSystem.File.ReadAllText(secretIdOutputFile)?.Trim();
             if(string.IsNullOrEmpty(userSecretsId)) {
                 throw new InvalidOperationException($"Could not find the global property 'UserSecretsId' in MSBuild project '{_fileSystem.Path.GetFileName(projectFile)}'.");
             }
 
-            return userSecretsId;
+            var userSecretsKeyVault = string.Empty;
+            if(_fileSystem.File.Exists(secretKeyVaultOutputFile)) {
+                userSecretsKeyVault = _fileSystem.File.ReadAllText(secretKeyVaultOutputFile)?.Trim() ?? string.Empty;
+            }
+
+            return new ResolveResult(userSecretsId, userSecretsKeyVault);
         } finally {
-            TryDelete(outputFile);
+            TryDelete(secretIdOutputFile);
+            TryDelete(secretKeyVaultOutputFile);
         }
     }
 

@@ -1,4 +1,7 @@
 using System.IO.Abstractions;
+using Azure;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using Karls.BetterSecretsTool.Vendor;
 using Spectre.Console;
 
@@ -17,6 +20,7 @@ public static class Program {
         }
 
         var id = options.UserSecretsId;
+        string? keyVaultName = null;
 
         if(string.IsNullOrWhiteSpace(id)) {
             var directory = options.WorkingDirectory;
@@ -26,7 +30,14 @@ public static class Program {
                 return;
             }
 
-            id = ResolveId(directory, options.BuildConfiguration);
+            var result = ResolveId(directory, options.BuildConfiguration);
+            if(result is null) {
+                Console.MarkupLineInterpolated($"[red]Error:[/] Could not find a .NET project in the specified directory '[grey]{directory}[/]' to resolve the User Secrets ID from.");
+                return;
+            }
+
+            id = result.UserSecretsId;
+            keyVaultName = result.UserSecretsKeyVault;
         }
 
         if(string.IsNullOrWhiteSpace(id)) {
@@ -41,6 +52,11 @@ public static class Program {
 
             Console.WriteLine();
             Console.MarkupLine("[grey]Type [green]A[/] to add, [green]E[/] to edit or [green]D[/] to delete secrets. Type [green]S[/] to show single value.[/]");
+
+            if(!string.IsNullOrWhiteSpace(keyVaultName)) {
+                Console.MarkupLineInterpolated($"[grey]Type [green]K[/] to download secrets from key vault [yellow]{keyVaultName}[/][/].");
+            }
+
             Console.MarkupLine("[grey]Press [green]Enter[/] to exit[/]");
 
             var prompt = Console.Input.ReadKey(false).GetValueOrDefault().KeyChar.ToString();
@@ -57,27 +73,115 @@ public static class Program {
             }
 
             if(prompt == "A") {
-                var key = Console.Ask<string>("[grey]Enter secret [green]key[/][/]:");
-                var value = Console.Ask<string>("[grey]Enter secret [yellow]value[/][/]:");
-                secretStore.Set(key, value);
+                AddSecret(secretStore);
             } else if(prompt == "E") {
-                var key = SelectKey(secretStore, "[grey]Select a secret to edit:[/]");
-
-                Console.MarkupLine($"[grey]Editing secret [green]{key}[/][/].");
-                Console.MarkupLineInterpolated($"[grey]Current value: [yellow]{secretStore[key]}[/][/]");
-                var newValue = Console.Ask<string>("[grey]Enter new value:[/]");
-                secretStore.Set(key, newValue);
+                EditSecret(secretStore);
             } else if(prompt == "D") {
-                var key = SelectKey(secretStore, "[grey]Select a secret to delete:[/]");
-                secretStore.Remove(key);
+                RemoveSecret(secretStore);
             } else if(prompt == "S") {
-                var key = SelectKey(secretStore, "[grey]Select a secret to show:[/]");
-                Console.MarkupLineInterpolated($"[grey]Value for [green]{key}[/][/]:");
-                Console.MarkupLineInterpolated($"[yellow]{secretStore[key]}[/]");
-                Console.MarkupLine("[grey]Press any key to continue...[/]");
-                Console.Input.ReadKey(true);
+                ShowSecret(secretStore);
+            } else if(prompt == "K" && !string.IsNullOrWhiteSpace(keyVaultName)) {
+                DownloadFromKeyVault(secretStore, keyVaultName);
             }
         }
+    }
+
+    private static void DownloadFromKeyVault(SecretsStore secretStore, string keyVaultName) {
+        Console.Clear();
+        Console.MarkupLineInterpolated($"[grey]Downloading secrets from key vault [yellow]{keyVaultName}[/][/].");
+
+        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions {
+            ExcludeInteractiveBrowserCredential = false
+        });
+
+        Action? afterStatusAction = null;
+
+        AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .Start("Authenticating with Azure...", ctx => {
+                var client = new SecretClient(new Uri($"https://{keyVaultName}.vault.azure.net/"), credential);
+
+                ctx.Status = "Downloading secret keys...";
+                List<SecretProperties> secrets;
+
+                try {
+                    secrets = client.GetPropertiesOfSecrets().ToList();
+                } catch(AggregateException ex) when(ex.InnerException is RequestFailedException rfe) {
+                    afterStatusAction = () => {
+                        Console.Clear();
+                        Console.MarkupLineInterpolated($"[red]Error:[/] Could not access key vault [yellow]{keyVaultName}[/]: {rfe.Message}");
+                    };
+                    return;
+                } catch(Exception ex) {
+                    afterStatusAction = () => {
+                        Console.Clear();
+                        Console.MarkupLineInterpolated($"[red]Error:[/] Could not access key vault [yellow]{keyVaultName}[/]: {ex.Message}");
+                    };
+                    return;
+                }
+
+                foreach(var secretProperties in secrets) {
+                    try {
+                        ctx.Status = $"Downloading secret [green]{secretProperties.Name}[/]...";
+                        var secret = client.GetSecret(secretProperties.Name);
+                        if(secret?.Value is not null) {
+                            secretStore.Set(secretProperties.Name, secret.Value.Value);
+                        }
+                    } catch(RequestFailedException ex) when(ex.Status == 404) {
+                        // A secret was deleted after we listed them. Ignore.
+                    } catch(AggregateException ex) when(ex.InnerException is RequestFailedException rfe) {
+                        afterStatusAction = () => {
+                            Console.Clear();
+                            Console.MarkupLineInterpolated($"[red]Error:[/] Could not access value of secret [yellow]{secretProperties.Name}[/]: {rfe.Message}");
+                        };
+                        return;
+                    } catch(Exception ex) {
+                        afterStatusAction = () => {
+                            Console.Clear();
+                            Console.MarkupLineInterpolated($"[red]Error:[/] Could not access value of secret [yellow]{secretProperties.Name}[/]: {ex.Message}");
+                        };
+                        return;
+                    }
+                }
+            });
+
+        secretStore.Save();
+        if(afterStatusAction is not null) {
+            afterStatusAction?.Invoke();
+            Console.MarkupLine("[grey]Press any key to continue...[/]");
+            Console.Input.ReadKey(true);
+        }
+    }
+
+    private static void ShowSecret(SecretsStore secretStore) {
+        var key = SelectKey(secretStore, "[grey]Select a secret to show:[/]");
+        Console.MarkupLineInterpolated($"[grey]Value for [green]{key}[/][/]:");
+        Console.MarkupLineInterpolated($"[yellow]{secretStore[key]}[/]");
+        Console.MarkupLine("[grey]Press any key to continue...[/]");
+        Console.Input.ReadKey(true);
+    }
+
+    private static void RemoveSecret(SecretsStore secretStore) {
+        var key = SelectKey(secretStore, "[grey]Select a secret to delete:[/]");
+        secretStore.Remove(key);
+        secretStore.Save();
+    }
+
+    private static void EditSecret(SecretsStore secretStore) {
+        var key = SelectKey(secretStore, "[grey]Select a secret to edit:[/]");
+
+        Console.MarkupLine($"[grey]Editing secret [green]{key}[/][/].");
+        Console.MarkupLineInterpolated($"[grey]Current value: [yellow]{secretStore[key]}[/][/]");
+        var newValue = Console.Ask<string>("[grey]Enter new value:[/]");
+        secretStore.Set(key, newValue);
+        secretStore.Save();
+    }
+
+    private static void AddSecret(SecretsStore secretStore) {
+        var key = Console.Ask<string>("[grey]Enter secret [green]key[/][/]:");
+        var value = Console.Ask<string>("[grey]Enter secret [yellow]value[/][/]:");
+        secretStore.Set(key, value);
+        secretStore.Save();
     }
 
     private static void RenderHelpMessage() {
@@ -148,7 +252,7 @@ public static class Program {
         Console.Write(table);
     }
 
-    private static string? ResolveId(string workingDirectory, string? buildConfiguration) {
+    private static ResolveResult? ResolveId(string workingDirectory, string? buildConfiguration) {
         var resolver = new ProjectIdResolver(FileSystem);
 
         var finder = new MsBuildProjectFinder(workingDirectory, FileSystem);
