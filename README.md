@@ -1,4 +1,5 @@
-# Karls Better Secrets Tool
+# Karls Better Secrets Tool ![NuGet Version](https://img.shields.io/nuget/v/Karls.BetterSecretsTool) ![NuGet Downloads](https://img.shields.io/nuget/dt/Karls.BetterSecretsTool)
+
 
 An easier way to manage your [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets)
 from the command line.
