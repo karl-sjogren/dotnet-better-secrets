@@ -125,7 +125,8 @@ public static class Program {
                         ctx.Status = $"Downloading secret [green]{secretProperties.Name}[/]...";
                         var secret = client.GetSecret(secretProperties.Name);
                         if(secret?.Value is not null) {
-                            secretStore.Set(secretProperties.Name, secret.Value.Value);
+                            var fixedKey = secretProperties.Name.Replace("--", ":", StringComparison.Ordinal);
+                            secretStore.Set(fixedKey, secret.Value.Value);
                         }
                     } catch(RequestFailedException ex) when(ex.Status == 404) {
                         // A secret was deleted after we listed them. Ignore.
