@@ -1,18 +1,11 @@
 # Karls Better Secrets Tool [![NuGet Version](https://img.shields.io/nuget/v/Karls.BetterSecretsTool) ![NuGet Downloads](https://img.shields.io/nuget/dt/Karls.BetterSecretsTool)](https://www.nuget.org/packages/Karls.BetterSecretsTool/)
 
-
 An easier way to manage your [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets)
 from the command line.
 
 ![Better Secrets Tool Screenshot](https://github.com/karl-sjogren/dotnet-better-secrets/raw/develop/assets/start-screen.png)
 
 ## Installation
-
-As a global tool:
-
-```bash
-dotnet tool install -g Karls.BetterSecretsTool
-```
 
 As a local tool:
 
@@ -21,20 +14,32 @@ dotnet new tool-manifest # if you don't have a manifest already
 dotnet tool install Karls.BetterSecretsTool
 ```
 
-## Usage
-
-Run `better-secrets` in the directory of your project to manage its user secrets.
-
 As a global tool:
 
 ```bash
-better-secrets
+dotnet tool install -g Karls.BetterSecretsTool
 ```
+
+> [!NOTE]
+> White a global tool is convenient since it is always available, a local
+> tool ensures that everyone working on the project uses the same version of
+> the tool and that new versions are picked up automatically by tools such
+> as Dependabot/Renovatebot.
+
+## Usage
+
+Run `better-secrets` in the directory of your project to manage its user secrets.
 
 As a local tool:
 
 ```bash
 dotnet better-secrets
+```
+
+As a global tool:
+
+```bash
+better-secrets
 ```
 
 ### Azure Key Vault Integration
