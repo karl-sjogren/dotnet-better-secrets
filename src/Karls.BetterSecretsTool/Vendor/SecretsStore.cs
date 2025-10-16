@@ -71,6 +71,7 @@ public class SecretsStore : ISecretStore {
         // Create a temp file with the correct Unix file mode before moving it to the expected _filePath.
         if(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             var tempFilename = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), _fileSystem.Path.GetRandomFileName());
+            _fileSystem.File.Create(tempFilename).Dispose();
             _fileSystem.File.Move(tempFilename, SecretsFilePath, overwrite: true);
         }
 
