@@ -1,9 +1,12 @@
 using System.IO.Abstractions;
+using System.Text.Json;
 using Azure;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using Karls.BetterSecretsTool.Extensions;
 using Karls.BetterSecretsTool.Vendor;
 using Spectre.Console;
+using Spectre.Console.Json;
 
 namespace Karls.BetterSecretsTool;
 
@@ -51,7 +54,7 @@ public static class Program {
             RenderTable(secretStore);
 
             Console.WriteLine();
-            Console.MarkupLine("[grey]Type [green]A[/] to add, [green]E[/] to edit or [green]D[/] to delete secrets. Type [green]S[/] to show single value.[/]");
+            Console.MarkupLine("[grey]Type [green]A[/] to add, [green]E[/] to edit or [green]D[/] to delete secrets. Type [green]S[/] to show single value or [green]J[/] to show all values as JSON.[/]");
 
             if(!string.IsNullOrWhiteSpace(keyVaultName)) {
                 Console.MarkupLineInterpolated($"[grey]Type [green]K[/] to download secrets from key vault [yellow]{keyVaultName}[/][/].");
@@ -63,14 +66,11 @@ public static class Program {
 
             prompt = prompt.Trim().ToUpperInvariant();
             if(string.IsNullOrWhiteSpace(prompt) || prompt == "Q") {
+                Console.ClearSafe();
                 return;
             }
 
-            try {
-                Console.Clear();
-            } catch {
-                // Can fail in some environments, e.g. when piping output to a file or running from VSCode
-            }
+            Console.ClearSafe();
 
             if(prompt == "A") {
                 AddSecret(secretStore);
@@ -80,6 +80,8 @@ public static class Program {
                 RemoveSecret(secretStore);
             } else if(prompt == "S") {
                 ShowSecret(secretStore);
+            } else if(prompt == "J") {
+                ShowSecretJson(secretStore);
             } else if(prompt == "K" && !string.IsNullOrWhiteSpace(keyVaultName)) {
                 DownloadFromKeyVault(secretStore, keyVaultName);
             }
@@ -87,7 +89,7 @@ public static class Program {
     }
 
     private static void DownloadFromKeyVault(SecretsStore secretStore, string keyVaultName) {
-        Console.Clear();
+        Console.ClearSafe();
         Console.MarkupLineInterpolated($"[grey]Downloading secrets from key vault [yellow]{keyVaultName}[/][/].");
 
         var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions {
@@ -108,13 +110,13 @@ public static class Program {
                     secrets = client.GetPropertiesOfSecrets().ToList();
                 } catch(AggregateException ex) when(ex.InnerException is RequestFailedException rfe) {
                     afterStatusAction = () => {
-                        Console.Clear();
+                        Console.ClearSafe();
                         Console.MarkupLineInterpolated($"[red]Error:[/] Could not access key vault [yellow]{keyVaultName}[/]: {rfe.Message}");
                     };
                     return;
                 } catch(Exception ex) {
                     afterStatusAction = () => {
-                        Console.Clear();
+                        Console.ClearSafe();
                         Console.MarkupLineInterpolated($"[red]Error:[/] Could not access key vault [yellow]{keyVaultName}[/]: {ex.Message}");
                     };
                     return;
@@ -132,13 +134,13 @@ public static class Program {
                         // A secret was deleted after we listed them. Ignore.
                     } catch(AggregateException ex) when(ex.InnerException is RequestFailedException rfe) {
                         afterStatusAction = () => {
-                            Console.Clear();
+                            Console.ClearSafe();
                             Console.MarkupLineInterpolated($"[red]Error:[/] Could not access value of secret [yellow]{secretProperties.Name}[/]: {rfe.Message}");
                         };
                         return;
                     } catch(Exception ex) {
                         afterStatusAction = () => {
-                            Console.Clear();
+                            Console.ClearSafe();
                             Console.MarkupLineInterpolated($"[red]Error:[/] Could not access value of secret [yellow]{secretProperties.Name}[/]: {ex.Message}");
                         };
                         return;
@@ -158,6 +160,17 @@ public static class Program {
         var key = SelectKey(secretStore, "[grey]Select a secret to show:[/]");
         Console.MarkupLineInterpolated($"[grey]Value for [green]{key}[/][/]:");
         Console.MarkupLineInterpolated($"[yellow]{secretStore[key]}[/]");
+        Console.MarkupLine("[grey]Press any key to continue...[/]");
+        Console.Input.ReadKey(true);
+    }
+
+    private static void ShowSecretJson(SecretsStore secretStore) {
+        var dict = secretStore.AsEnumerable().ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        var json = JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true });
+        var jsonText = new JsonText(json);
+        Console.Write(jsonText);
+        Console.WriteLine();
+        Console.WriteLine();
         Console.MarkupLine("[grey]Press any key to continue...[/]");
         Console.Input.ReadKey(true);
     }
@@ -202,13 +215,16 @@ public static class Program {
         Console.MarkupLine("Examples:");
         Console.MarkupLine("  [grey]better-secrets -d ./MyProject[/]        Manage secrets for the project in ./MyProject");
         Console.MarkupLine("  [grey]better-secrets -i <user-secrets-id>[/]  Manage secrets for the specified User Secrets ID");
+        Console.WriteLine();
+        Console.MarkupLine("For more information, visit [blue underline]https://github.com/karl-sjogren/dotnet-better-secrets[/]");
     }
 
     private static string SelectKey(SecretsStore secretStore, string title) {
+        var selectionSize = Math.Max(5, Math.Min(15, Console.Profile.Height - 3));
         var selection =
             new SelectionPrompt<string>()
                 .Title(title)
-                .PageSize(10)
+                .PageSize(selectionSize)
                 .MoreChoicesText("[grey](Move up and down to reveal more secrets)[/]")
                 .AddChoices([.. secretStore.AsSortedEnumerable().Select(kvp => kvp.Key)]);
 
@@ -224,12 +240,9 @@ public static class Program {
                     .Expand();
 
         var longestKey = secretStore.AsEnumerable().Select(kvp => kvp.Key.Length).DefaultIfEmpty(0).Max();
+        longestKey = Math.Max(longestKey, 3);
 
-        try {
-            Console.Clear();
-        } catch {
-            // Can fail in some environments, e.g. when piping output to a file or running from VSCode
-        }
+        Console.ClearSafe();
 
         var keyColumn = new TableColumn(new Markup("[bold green]Key[/]"))
             .NoWrap()
@@ -260,11 +273,10 @@ public static class Program {
         string projectFile;
         try {
             projectFile = finder.FindMsBuildProject("");
+            return resolver.Resolve(projectFile, buildConfiguration ?? "Debug");
         } catch(Exception) {
             return null;
         }
-
-        return resolver.Resolve(projectFile, buildConfiguration ?? "Debug");
     }
 
     private static CommandLineOptions ParseArguments(string[] args) {
@@ -274,7 +286,7 @@ public static class Program {
 
         for(var i = 0; i < args.Length; i++) {
             var arg = args[i];
-            if(!arg.StartsWith("-", StringComparison.Ordinal)) {
+            if(!arg.StartsWith('-')) {
                 workingDirectory = args[i];
             } else if(arg == "-i" || arg == "--id") {
                 if(i + 1 < args.Length) {
