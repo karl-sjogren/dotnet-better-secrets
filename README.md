@@ -21,7 +21,7 @@ dotnet tool install -g Karls.BetterSecretsTool
 ```
 
 > [!NOTE]
-> White a global tool is convenient since it is always available, a local
+> While a global tool is convenient since it is always available, a local
 > tool ensures that everyone working on the project uses the same version of
 > the tool and that new versions are picked up automatically by tools such
 > as Dependabot/Renovatebot.
