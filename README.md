@@ -3,7 +3,7 @@
 An easier way to manage your [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets)
 from the command line.
 
-![Better Secrets Tool Screenshot](https://github.com/karl-sjogren/dotnet-better-secrets/raw/develop/assets/start-screen.png)
+![Better Secrets Tool Screenshot](https://raw.githubusercontent.com/karl-sjogren/dotnet-better-secrets/develop/assets/start-screen.png)
 
 ## Installation
 
