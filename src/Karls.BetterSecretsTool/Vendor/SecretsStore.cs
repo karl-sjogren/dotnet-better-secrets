@@ -71,9 +71,9 @@ public class SecretsStore : ISecretStore {
         // Create a temp file with the correct Unix file mode before moving it to the expected _filePath.
         if(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             try {
-#pragma warning disable CS0618 // Type or member is obsolete
-                var tempFilename = _fileSystem.Path.GetTempFileName();
-#pragma warning restore CS0618 // Type or member is obsolete
+                var tempFilename = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), _fileSystem.Path.GetRandomFileName());
+                _fileSystem.File.Create(tempFilename).Dispose();
+                _fileSystem.File.Move(tempFilename, SecretsFilePath, overwrite: true);
                 _fileSystem.File.Move(tempFilename, SecretsFilePath, overwrite: true);
             } catch {
                 // Ignore errors; we may be on a filesystem that doesn't support Unix file modes.
