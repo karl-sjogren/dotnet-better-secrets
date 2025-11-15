@@ -4,6 +4,7 @@ using Spectre.Console;
 
 namespace Karls.BetterSecretsTool;
 
+[ExcludeFromCodeCoverage(Justification = "Contains only the tool entry point.")]
 public static class Program {
     public static void Main(string[] args) {
         var fileSystem = new FileSystem();
