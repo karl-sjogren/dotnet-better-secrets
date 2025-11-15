@@ -62,7 +62,7 @@ public class MsBuildProjectFinderTests {
         var finder = new MsBuildProjectFinder(fileSystem);
 
         // Act
-        var projects = finder.FindMsBuildProjects(@"C:\Projects\MyApp");
+        var projects = finder.FindMsBuildProjects(@"C:\Projects\MyApp\");
 
         // Assert
         projects.Length.ShouldBe(3);
