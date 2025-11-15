@@ -3,7 +3,7 @@
 
 namespace Karls.BetterSecretsTool.Contracts;
 
-public interface ISecretStore {
+internal interface ISecretsStore {
     string this[string key] { get; }
     int Count { get; }
     bool ContainsKey(string key);

@@ -89,7 +89,7 @@ internal sealed class ProjectIdResolver : IProjectIdResolver {
                 userSecretsKeyVault = _fileSystem.File.ReadAllText(secretKeyVaultOutputFile)?.Trim() ?? string.Empty;
             }
 
-            return new ResolveResult(userSecretsId, userSecretsKeyVault);
+            return new ResolveResult(projectFile, userSecretsId, userSecretsKeyVault);
         } finally {
             TryDelete(secretIdOutputFile);
             TryDelete(secretKeyVaultOutputFile);
