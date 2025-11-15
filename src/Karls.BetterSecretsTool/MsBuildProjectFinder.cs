@@ -57,16 +57,6 @@ internal sealed class MsBuildProjectFinder {
     }
 }
 
-internal sealed record MsBuildProject {
-    public string Path { get; }
-    public string Sdk { get; }
-    public bool AtRoot { get; }
-
+internal sealed record MsBuildProject(string Path, string Sdk, bool AtRoot) {
     public bool IsWebSdk => Sdk.StartsWith("Microsoft.NET.Sdk.Web", StringComparison.OrdinalIgnoreCase);
-
-    internal MsBuildProject(string Path, string Sdk, bool AtRoot) {
-        this.Path = Path;
-        this.Sdk = Sdk;
-        this.AtRoot = AtRoot;
-    }
 }
