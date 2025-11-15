@@ -39,7 +39,13 @@ dotnet better-secrets
 As a global tool:
 
 ```bash
-better-secrets
+dotnet-better-secrets
+```
+
+Using `dnx` if on .NET 10 SDK:
+
+```bash
+dnx Karls.BetterSecretsTool
 ```
 
 ### Azure Key Vault Integration
