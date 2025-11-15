@@ -47,7 +47,7 @@ internal sealed class MsBuildProjectFinder {
         }
 
         var parentDirectory = _fileSystem.Path.GetDirectoryName(projectFilePath);
-        var atRoot = parentDirectory == _baseDirectory;
+        var atRoot = string.Equals(parentDirectory, _baseDirectory, StringComparison.OrdinalIgnoreCase);
 
         if(sdk == null) {
             return null;
