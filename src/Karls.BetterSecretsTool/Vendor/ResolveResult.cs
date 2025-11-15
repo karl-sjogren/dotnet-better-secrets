@@ -3,4 +3,4 @@
 
 namespace Karls.BetterSecretsTool.Vendor;
 
-public record ResolveResult(string? UserSecretsId, string? UserSecretsKeyVault);
+public record ResolveResult(string ProjectPath, string? UserSecretsId, string? UserSecretsKeyVault);

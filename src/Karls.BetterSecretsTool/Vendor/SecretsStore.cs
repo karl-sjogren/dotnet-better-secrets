@@ -15,13 +15,14 @@ namespace Karls.BetterSecretsTool.Vendor;
 /// This API supports infrastructure and is not intended to be used
 /// directly from your code. This API may change or be removed in future releases.
 /// </summary>
-public class SecretsStore : ISecretStore {
+public class SecretsStore : ISecretsStore {
     private readonly IDictionary<string, string> _secrets;
     private readonly IFileSystem _fileSystem;
     private readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
     public SecretsStore(string userSecretsId, IFileSystem? fileSystem = null) {
         ArgumentNullException.ThrowIfNull(userSecretsId);
+        UserSecretsId = userSecretsId;
         _fileSystem = fileSystem ?? new FileSystem();
 
         SecretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
@@ -43,6 +44,8 @@ public class SecretsStore : ISecretStore {
 
     // For testing.
     internal string SecretsFilePath { get; }
+
+    public string UserSecretsId { get; }
 
     public bool ContainsKey(string key) => _secrets.ContainsKey(key);
 
@@ -71,9 +74,8 @@ public class SecretsStore : ISecretStore {
         // Create a temp file with the correct Unix file mode before moving it to the expected _filePath.
         if(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             try {
-#pragma warning disable CS0618 // Type or member is obsolete
-                var tempFilename = _fileSystem.Path.GetTempFileName();
-#pragma warning restore CS0618 // Type or member is obsolete
+                var tempFilename = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), _fileSystem.Path.GetRandomFileName());
+                _fileSystem.File.Create(tempFilename).Dispose();
                 _fileSystem.File.Move(tempFilename, SecretsFilePath, overwrite: true);
             } catch {
                 // Ignore errors; we may be on a filesystem that doesn't support Unix file modes.

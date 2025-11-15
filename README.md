@@ -3,7 +3,7 @@
 An easier way to manage your [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets)
 from the command line.
 
-![Better Secrets Tool Screenshot](https://github.com/karl-sjogren/dotnet-better-secrets/raw/develop/assets/start-screen.png)
+![Better Secrets Tool Screenshot](https://raw.githubusercontent.com/karl-sjogren/dotnet-better-secrets/develop/assets/start-screen.png)
 
 ## Installation
 
@@ -21,7 +21,7 @@ dotnet tool install -g Karls.BetterSecretsTool
 ```
 
 > [!NOTE]
-> White a global tool is convenient since it is always available, a local
+> While a global tool is convenient since it is always available, a local
 > tool ensures that everyone working on the project uses the same version of
 > the tool and that new versions are picked up automatically by tools such
 > as Dependabot/Renovatebot.
@@ -39,7 +39,13 @@ dotnet better-secrets
 As a global tool:
 
 ```bash
-better-secrets
+dotnet-better-secrets
+```
+
+Using `dnx` if on .NET 10 SDK:
+
+```bash
+dnx Karls.BetterSecretsTool
 ```
 
 ### Azure Key Vault Integration
