@@ -22,6 +22,7 @@ public class SecretsStore : ISecretStore {
 
     public SecretsStore(string userSecretsId, IFileSystem? fileSystem = null) {
         ArgumentNullException.ThrowIfNull(userSecretsId);
+        UserSecretsId = userSecretsId;
         _fileSystem = fileSystem ?? new FileSystem();
 
         SecretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
@@ -43,6 +44,8 @@ public class SecretsStore : ISecretStore {
 
     // For testing.
     internal string SecretsFilePath { get; }
+
+    public string UserSecretsId { get; }
 
     public bool ContainsKey(string key) => _secrets.ContainsKey(key);
 

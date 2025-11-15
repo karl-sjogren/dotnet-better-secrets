@@ -33,7 +33,7 @@ public static class Program {
                 return;
             }
 
-            var result = ResolveId(directory, options.BuildConfiguration);
+            var result = ResolveUserSecretsId(directory, options.BuildConfiguration);
             if(result is null) {
                 Console.MarkupLineInterpolated($"[red]Error:[/] Could not find a .NET project in the specified directory '[grey]{directory}[/]' to resolve the User Secrets ID from.");
                 return;
@@ -231,13 +231,15 @@ public static class Program {
         return Console.Prompt(selection);
     }
 
-    private static void RenderTable(SecretsStore secretStore) {
+    internal static void RenderTable(SecretsStore secretStore) {
+        var version = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "unknown version";
+
         var table = new Table()
-                    .Border(TableBorder.Rounded)
-                    .BorderColor(Color.Grey37)
-                    .Caption("[grey]Karls Better Secrets Tool[/]")
-                    .ShowRowSeparators()
-                    .Expand();
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Grey37)
+            .Caption($"[grey]Karls Better Secrets Tool {version}[/]")
+            .ShowRowSeparators()
+            .Expand();
 
         var longestKey = secretStore.AsEnumerable().Select(kvp => kvp.Key.Length).DefaultIfEmpty(0).Max();
         longestKey = Math.Max(longestKey, 3);
@@ -266,13 +268,29 @@ public static class Program {
         Console.Write(table);
     }
 
-    private static ResolveResult? ResolveId(string workingDirectory, string? buildConfiguration) {
+    private static ResolveResult? ResolveUserSecretsId(string workingDirectory, string? buildConfiguration) {
         var resolver = new ProjectIdResolver(FileSystem);
 
         var finder = new MsBuildProjectFinder(workingDirectory, FileSystem);
-        string projectFile;
+        MsBuildProject[] projects;
         try {
-            projectFile = finder.FindMsBuildProject("");
+            projects = finder.FindMsBuildProjects();
+
+            if(projects.Length == 0) {
+                return null;
+            }
+
+            var projectFile = projects[0].Path;
+            if(projects.Length > 1) {
+                projectFile = projects
+                    .OrderBy(p => p.AtRoot ? 0 : 1)
+                    .ThenBy(p => p.IsWebSdk ? 0 : 1)
+                    .First()
+                    .Path;
+
+                Console.MarkupLineInterpolated($"[yellow]Warning:[/] Multiple .NET projects found in directory '[grey]{workingDirectory}[/]'. Using: '[grey]{projectFile}[/]'.");
+            }
+
             return resolver.Resolve(projectFile, buildConfiguration ?? "Debug");
         } catch(Exception) {
             return null;

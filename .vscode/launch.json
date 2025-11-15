@@ -5,14 +5,46 @@
             // Use IntelliSense to find out which attributes exist for C# debugging
             // Use hover for the description of the existing attributes
             // For further information visit https://github.com/dotnet/vscode-csharp/blob/main/debugger-launchjson.md
-            "name": ".NET Core Launch (console)",
+            "name": ".NET Core Launch (console) (/src/)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/src/Karls.BetterSecretsTool/bin/Debug/net8.0/Karls.BetterSecretsTool.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/Karls.BetterSecretsTool.SampleProject",
+            "cwd": "${workspaceFolder}/src/",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "externalTerminal",
+            "stopAtEntry": false
+        },
+        {
+            // Use IntelliSense to find out which attributes exist for C# debugging
+            // Use hover for the description of the existing attributes
+            // For further information visit https://github.com/dotnet/vscode-csharp/blob/main/debugger-launchjson.md
+            "name": ".NET Core Launch (console) (SampleProject)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/src/Karls.BetterSecretsTool/bin/Debug/net8.0/Karls.BetterSecretsTool.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/Karls.BetterSecretsTool.SampleProject/",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "externalTerminal",
+            "stopAtEntry": false
+        },
+        {
+            // Use IntelliSense to find out which attributes exist for C# debugging
+            // Use hover for the description of the existing attributes
+            // For further information visit https://github.com/dotnet/vscode-csharp/blob/main/debugger-launchjson.md
+            "name": ".NET Core Launch (console) (BetterSecretsTool)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/src/Karls.BetterSecretsTool/bin/Debug/net8.0/Karls.BetterSecretsTool.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/Karls.BetterSecretsTool/",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "externalTerminal",
             "stopAtEntry": false
