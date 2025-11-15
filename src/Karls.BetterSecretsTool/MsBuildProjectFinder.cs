@@ -49,6 +49,11 @@ internal sealed class MsBuildProjectFinder : IMsBuildProjectFinder {
         }
 
         var parentDirectory = _fileSystem.Path.GetDirectoryName(projectFilePath);
+
+        // Ensure none have a trailing separator for accurate comparison
+        parentDirectory = parentDirectory?.TrimEnd(_fileSystem.Path.DirectorySeparatorChar, _fileSystem.Path.AltDirectorySeparatorChar);
+        baseDirectory = baseDirectory.TrimEnd(_fileSystem.Path.DirectorySeparatorChar, _fileSystem.Path.AltDirectorySeparatorChar);
+
         var atRoot = parentDirectory == baseDirectory;
 
         if(sdk == null) {

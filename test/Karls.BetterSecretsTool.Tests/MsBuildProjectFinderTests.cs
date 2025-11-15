@@ -1,5 +1,7 @@
 using System.IO.Abstractions.TestingHelpers;
 
+using MUS = System.IO.Abstractions.TestingHelpers.MockUnixSupport;
+
 namespace Karls.BetterSecretsTool.Tests;
 
 public class MsBuildProjectFinderTests {
@@ -54,32 +56,32 @@ public class MsBuildProjectFinderTests {
     public void FindMsBuildProjects_WhenCalled_ReturnsAllProjectsDownTheDirectoryTree() {
         // Arrange
         var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData> {
-            { @"C:\Projects\MyApp\MyApp.csproj", new MockFileData("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>") },
-            { @"C:\Projects\MyApp\MyLib\MyLib.csproj", new MockFileData("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>") },
-            { @"C:\Projects\MyApp\MyWeb\MyWeb.fsproj", new MockFileData("<Project Sdk=\"Microsoft.NET.Sdk.Web\"></Project>") },
-            { @"C:\Projects\MyApp\Readme.txt", new MockFileData("This is a readme file.") }
+            { MUS.Path(@"C:\Projects\MyApp\MyApp.csproj"), new MockFileData("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>") },
+            { MUS.Path(@"C:\Projects\MyApp\MyLib\MyLib.csproj"), new MockFileData("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>") },
+            { MUS.Path(@"C:\Projects\MyApp\MyWeb\MyWeb.fsproj"), new MockFileData("<Project Sdk=\"Microsoft.NET.Sdk.Web\"></Project>") },
+            { MUS.Path(@"C:\Projects\MyApp\Readme.txt"), new MockFileData("This is a readme file.") }
         });
         var finder = new MsBuildProjectFinder(fileSystem);
 
         // Act
-        var projects = finder.FindMsBuildProjects(@"C:\Projects\MyApp\");
+        var projects = finder.FindMsBuildProjects(MUS.Path(@"C:\Projects\MyApp\"));
 
         // Assert
         projects.Length.ShouldBe(3);
 
-        var myAppProject = projects.FirstOrDefault(p => p.Path == @"C:\Projects\MyApp\MyApp.csproj");
+        var myAppProject = projects.FirstOrDefault(p => p.Path == MUS.Path(@"C:\Projects\MyApp\MyApp.csproj"));
         myAppProject.ShouldNotBeNull();
         myAppProject.Sdk.ShouldBe("Microsoft.NET.Sdk");
         myAppProject.AtRoot.ShouldBeTrue();
         myAppProject.IsWebSdk.ShouldBeFalse();
 
-        var myLibProject = projects.FirstOrDefault(p => p.Path == @"C:\Projects\MyApp\MyLib\MyLib.csproj");
+        var myLibProject = projects.FirstOrDefault(p => p.Path == MUS.Path(@"C:\Projects\MyApp\MyLib\MyLib.csproj"));
         myLibProject.ShouldNotBeNull();
         myLibProject.Sdk.ShouldBe("Microsoft.NET.Sdk");
         myLibProject.AtRoot.ShouldBeFalse();
         myLibProject.IsWebSdk.ShouldBeFalse();
 
-        var myWebProject = projects.FirstOrDefault(p => p.Path == @"C:\Projects\MyApp\MyWeb\MyWeb.fsproj");
+        var myWebProject = projects.FirstOrDefault(p => p.Path == MUS.Path(@"C:\Projects\MyApp\MyWeb\MyWeb.fsproj"));
         myWebProject.ShouldNotBeNull();
         myWebProject.Sdk.ShouldBe("Microsoft.NET.Sdk.Web");
         myWebProject.AtRoot.ShouldBeFalse();
