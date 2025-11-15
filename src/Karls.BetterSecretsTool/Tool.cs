@@ -219,11 +219,11 @@ internal class Tool {
         secretStore.Save();
     }
 
-    private void RenderHelpMessage() {
+    internal void RenderHelpMessage() {
         _console.MarkupLine("[bold]Karls Better Secrets Tool[/]");
         _console.MarkupLine("An easier way to manage your .NET User Secrets from the command line.");
         _console.WriteLine();
-        _console.MarkupLine("Usage: [green]better-secrets[/] [yellow]<working-directory>[/] [grey][[options]][/]");
+        _console.MarkupLine("Usage: [green]dotnet better-secrets[/] [yellow]<working-directory>[/] [grey][[options]][/]");
         _console.WriteLine();
         _console.MarkupLine("Arguments:");
         _console.MarkupLine("  [yellow]<working-directory>[/]  The working directory containing the .NET project to manage secrets for. If not specified, the current directory will be used.");
@@ -234,10 +234,10 @@ internal class Tool {
         _console.MarkupLine("  [green]-h[/], [green]--help[/]           Show this help message.");
         _console.WriteLine();
         _console.MarkupLine("Examples:");
-        _console.MarkupLine("  [grey]better-secrets -d ./MyProject[/]        Manage secrets for the project in ./MyProject");
-        _console.MarkupLine("  [grey]better-secrets -i <user-secrets-id>[/]  Manage secrets for the specified User Secrets ID");
+        _console.MarkupLine("  [grey]dotnet better-secrets ./MyProject[/]           Manage secrets for the project in ./MyProject.");
+        _console.MarkupLine("  [grey]dotnet better-secrets -i <user-secrets-id>[/]  Manage secrets for the specified User Secrets ID.");
         _console.WriteLine();
-        _console.MarkupLine("For more information, visit [blue underline]https://github.com/karl-sjogren/dotnet-better-secrets[/]");
+        _console.MarkupLine("For more information, visit [blue underline]https://github.com/karl-sjogren/dotnet-better-secrets[/].");
     }
 
     private string SelectKey(ISecretsStore secretStore, string title) {
