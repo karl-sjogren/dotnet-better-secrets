@@ -9,16 +9,16 @@ public class MsBuildProjectFinderTests {
     public void ParseProjectFile_WithSdkAttribute_ReturnsMsBuildProject() {
         // Arrange
         var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData> {
-            { @"C:\Projects\MyApp\MyApp.csproj", new MockFileData("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>") }
+            { MUS.Path(@"C:\Projects\MyApp\MyApp.csproj"), new MockFileData("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>") }
         });
         var finder = new MsBuildProjectFinder(fileSystem);
 
         // Act
-        var project = finder.ParseProjectFile(@"C:\Projects\MyApp\MyApp.csproj", @"C:\Projects\MyApp");
+        var project = finder.ParseProjectFile(MUS.Path(@"C:\Projects\MyApp\MyApp.csproj"), MUS.Path(@"C:\Projects\MyApp"));
 
         // Assert
         project.ShouldNotBeNull();
-        project.Path.ShouldBe(@"C:\Projects\MyApp\MyApp.csproj");
+        project.Path.ShouldBe(MUS.Path(@"C:\Projects\MyApp\MyApp.csproj"));
         project.Sdk.ShouldBe("Microsoft.NET.Sdk");
     }
 
@@ -26,12 +26,12 @@ public class MsBuildProjectFinderTests {
     public void ParseProjectFile_WithoutSdkAttribute_ReturnsNull() {
         // Arrange
         var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData> {
-            { @"C:\Projects\MyApp\MyApp.csproj", new MockFileData("<Project></Project>") }
+            { MUS.Path(@"C:\Projects\MyApp\MyApp.csproj"), new MockFileData("<Project></Project>") }
         });
         var finder = new MsBuildProjectFinder(fileSystem);
 
         // Act
-        var project = finder.ParseProjectFile(@"C:\Projects\MyApp\MyApp.csproj", @"C:\Projects\MyApp");
+        var project = finder.ParseProjectFile(MUS.Path(@"C:\Projects\MyApp\MyApp.csproj"), MUS.Path(@"C:\Projects\MyApp"));
 
         // Assert
         project.ShouldBeNull();
@@ -41,12 +41,12 @@ public class MsBuildProjectFinderTests {
     public void ParseProjectFile_WithInvalidXml_ReturnsNull() {
         // Arrange
         var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData> {
-            { @"C:\Projects\MyApp\MyApp.csproj", new MockFileData("<Project><Invalid></Project>") }
+            { MUS.Path(@"C:\Projects\MyApp\MyApp.csproj"), new MockFileData("<Project><Invalid></Project>") }
         });
         var finder = new MsBuildProjectFinder(fileSystem);
 
         // Act
-        var project = finder.ParseProjectFile(@"C:\Projects\MyApp\MyApp.csproj", @"C:\Projects\MyApp");
+        var project = finder.ParseProjectFile(MUS.Path(@"C:\Projects\MyApp\MyApp.csproj"), MUS.Path(@"C:\Projects\MyApp"));
 
         // Assert
         project.ShouldBeNull();
