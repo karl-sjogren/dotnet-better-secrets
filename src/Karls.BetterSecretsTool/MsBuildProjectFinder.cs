@@ -1,25 +1,22 @@
 using System.IO.Abstractions;
 using System.Xml;
+using Karls.BetterSecretsTool.Contracts;
 
 namespace Karls.BetterSecretsTool;
 
-internal sealed class MsBuildProjectFinder {
-    private readonly string _baseDirectory;
+internal sealed class MsBuildProjectFinder : IMsBuildProjectFinder {
     private readonly IFileSystem _fileSystem;
 
-    public MsBuildProjectFinder(string baseDirectory, IFileSystem? fileSystem = null) {
-        ArgumentException.ThrowIfNullOrEmpty(baseDirectory);
-
-        _baseDirectory = baseDirectory;
+    public MsBuildProjectFinder(IFileSystem? fileSystem = null) {
         _fileSystem = fileSystem ?? new FileSystem();
     }
 
-    public MsBuildProject[] FindMsBuildProjects() {
-        if(!_fileSystem.Directory.Exists(_baseDirectory)) {
+    public MsBuildProject[] FindMsBuildProjects(string baseDirectory) {
+        if(!_fileSystem.Directory.Exists(baseDirectory)) {
             return [];
         }
 
-        var projects = _fileSystem.Directory.EnumerateFileSystemEntries(_baseDirectory, "*.*proj", SearchOption.AllDirectories)
+        var projects = _fileSystem.Directory.EnumerateFileSystemEntries(baseDirectory, "*.*proj", SearchOption.AllDirectories)
             .Where(f => !".xproj".Equals(_fileSystem.Path.GetExtension(f), StringComparison.OrdinalIgnoreCase))
             .ToList();
 
@@ -27,27 +24,32 @@ internal sealed class MsBuildProjectFinder {
             return [];
         }
 
-        return projects.Select(ParseProjectFile)
+        return projects.Select(projectFilePath => ParseProjectFile(projectFilePath, baseDirectory))
             .OfType<MsBuildProject>()
             .ToArray();
     }
 
-    private MsBuildProject? ParseProjectFile(string projectFilePath) {
+    internal MsBuildProject? ParseProjectFile(string projectFilePath, string baseDirectory) {
         string? sdk = null;
 
-        var xmlDoc = new XmlDocument();
-        xmlDoc.Load(projectFilePath);
+        try {
+            using var stream = _fileSystem.File.OpenRead(projectFilePath);
+            var xmlDoc = new XmlDocument();
+            xmlDoc.Load(stream);
 
-        var projectNode = xmlDoc.SelectSingleNode("/Project");
-        if(projectNode?.Attributes != null) {
-            var sdkAttribute = projectNode.Attributes["Sdk"];
-            if(sdkAttribute != null) {
-                sdk = sdkAttribute.Value;
+            var projectNode = xmlDoc.SelectSingleNode("/Project");
+            if(projectNode?.Attributes != null) {
+                var sdkAttribute = projectNode.Attributes["Sdk"];
+                if(sdkAttribute != null) {
+                    sdk = sdkAttribute.Value;
+                }
             }
+        } catch(XmlException) {
+            return null;
         }
 
         var parentDirectory = _fileSystem.Path.GetDirectoryName(projectFilePath);
-        var atRoot = parentDirectory == _baseDirectory;
+        var atRoot = parentDirectory == baseDirectory;
 
         if(sdk == null) {
             return null;
