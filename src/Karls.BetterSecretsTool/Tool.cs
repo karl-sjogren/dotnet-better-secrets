@@ -83,30 +83,42 @@ internal class Tool {
 
             _console.MarkupLine("[grey]Press [green]Enter[/] to exit.[/]");
 
-            var prompt = _console.Input.ReadKey(false).GetValueOrDefault().KeyChar.ToString();
-
-            prompt = prompt.Trim().ToUpperInvariant();
-            if(string.IsNullOrWhiteSpace(prompt) || prompt == "Q") {
-                _console.ClearSafe();
+            var shouldExit = HandleInput(keyVaultName, secretsStore);
+            if(!shouldExit) {
                 return;
             }
-
-            _console.ClearSafe();
-
-            if(prompt == "A") {
-                AddSecret(secretsStore);
-            } else if(prompt == "E") {
-                EditSecret(secretsStore);
-            } else if(prompt == "D") {
-                RemoveSecret(secretsStore);
-            } else if(prompt == "S") {
-                ShowSecret(secretsStore);
-            } else if(prompt == "J") {
-                ShowSecretJson(secretsStore);
-            } else if(prompt == "K" && !string.IsNullOrWhiteSpace(keyVaultName)) {
-                DownloadFromKeyVault(secretsStore, keyVaultName);
-            }
         }
+    }
+
+    /// <summary>
+    /// Handles user input and performs the corresponding action.
+    /// </summary>
+    /// <returns>True if the input indicates the tool should exit.</returns>
+    internal bool HandleInput(string? keyVaultName, ISecretsStore secretsStore) {
+        var prompt = _console.Input.ReadKey(false).GetValueOrDefault().KeyChar.ToString();
+
+        _console.ClearSafe();
+
+        prompt = prompt.Trim().ToUpperInvariant();
+        if(string.IsNullOrWhiteSpace(prompt) || prompt == "Q") {
+            return true;
+        }
+
+        if(prompt == "A") {
+            AddSecret(secretsStore);
+        } else if(prompt == "E") {
+            EditSecret(secretsStore);
+        } else if(prompt == "D") {
+            RemoveSecret(secretsStore);
+        } else if(prompt == "S") {
+            ShowSecret(secretsStore);
+        } else if(prompt == "J") {
+            ShowSecretJson(secretsStore);
+        } else if(prompt == "K" && !string.IsNullOrWhiteSpace(keyVaultName)) {
+            DownloadFromKeyVault(secretsStore, keyVaultName);
+        }
+
+        return false;
     }
 
     private void DownloadFromKeyVault(ISecretsStore secretStore, string keyVaultName) {

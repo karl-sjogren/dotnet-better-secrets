@@ -100,4 +100,57 @@ public class ToolTests {
         var secret2Continued = lines[6];
         secret2Continued.ShouldContain("│ Id=myUser;Password=myPass;");
     }
+
+    [Fact]
+    public void HandleInput_WhenQIsPressed_ReturnsTrue() {
+        // Arrange
+        var tool = new Tool(_console, _fileSystem, _projectFinder, _projectIdResolver, _secretsStoreFactory);
+
+        _console.Input.PushText("Q");
+
+        var secretsStore = A.Dummy<ISecretsStore>();
+
+        // Act
+        var result = tool.HandleInput(null, secretsStore);
+
+        // Assert
+        result.ShouldBe(true);
+    }
+
+    [Fact]
+    public void HandleInput_WhenEnterIsPressed_ReturnsTrue() {
+        // Arrange
+        var tool = new Tool(_console, _fileSystem, _projectFinder, _projectIdResolver, _secretsStoreFactory);
+
+        _console.Input.PushText("\n");
+
+        var secretsStore = A.Dummy<ISecretsStore>();
+
+        // Act
+        var result = tool.HandleInput(null, secretsStore);
+
+        // Assert
+        result.ShouldBe(true);
+    }
+
+    [Theory]
+    [InlineData("x")]
+    [InlineData("b")]
+    [InlineData("c")]
+    [InlineData("m")]
+    [InlineData("g")]
+    public void HandleInput_WhenUnusedKeyIsPressed_ReturnsFalse(string key) {
+        // Arrange
+        var tool = new Tool(_console, _fileSystem, _projectFinder, _projectIdResolver, _secretsStoreFactory);
+
+        _console.Input.PushText(key);
+
+        var secretsStore = A.Dummy<ISecretsStore>();
+
+        // Act
+        var result = tool.HandleInput(null, secretsStore);
+
+        // Assert
+        result.ShouldBe(false);
+    }
 }
