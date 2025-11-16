@@ -18,6 +18,10 @@ internal class Tool {
     private readonly IProjectIdResolver _projectIdResolver;
     private readonly ISecretsStoreFactory _secretsStoreFactory;
 
+    private readonly JsonSerializerOptions _jsonOptions = new() {
+        WriteIndented = true
+    };
+
     internal Tool(
             IAnsiConsole console,
             IFileSystem fileSystem,
@@ -84,7 +88,7 @@ internal class Tool {
             _console.MarkupLine("[grey]Press [green]Enter[/] to exit.[/]");
 
             var shouldExit = HandleInput(keyVaultName, secretsStore);
-            if(!shouldExit) {
+            if(shouldExit) {
                 return;
             }
         }
@@ -199,7 +203,7 @@ internal class Tool {
 
     private void ShowSecretJson(ISecretsStore secretStore) {
         var dict = secretStore.AsEnumerable().ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        var json = JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(dict, _jsonOptions);
         var jsonText = new JsonText(json);
         _console.Write(jsonText);
         _console.WriteLine();

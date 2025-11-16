@@ -88,6 +88,29 @@ public class CommandLineParserTests {
             ShowHelp: false));
     }
 
+    [Fact]
+    public void ParseArguments_WhenCalledWithUnknownDashedArgumentsWithoutValues_IgnoresUnknownArguments() {
+        // Arrange
+        var fileSystem = new MockFileSystem();
+        var parser = new CommandLineParser(fileSystem);
+        var args = new[] {
+            "/path/to/project",
+            "--id", "my-secrets-id",
+            "--zebra", "--configuration", "Release",
+            "-z", "another-value"
+        };
+
+        // Act
+        var result = parser.ParseArguments(args);
+
+        // Assert
+        result.ShouldBe(new CommandLineOptions(
+            WorkingDirectory: "/path/to/project",
+            UserSecretsId: "my-secrets-id",
+            BuildConfiguration: "Release",
+            ShowHelp: false));
+    }
+
     [Theory]
     [InlineData("-h")]
     [InlineData("--help")]
