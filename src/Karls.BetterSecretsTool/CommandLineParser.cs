@@ -32,7 +32,10 @@ internal class CommandLineParser : ICommandLineParser {
             } else if(arg == "-h" || arg == "--help") {
                 return new CommandLineOptions(null, null, null, true);
             } else {
-                i++; // Skip unknown argument value
+                // Only skip the next argument if it does not start with '-'
+                if (i + 1 < args.Length && !args[i + 1].StartsWith('-')) {
+                    i++;
+                }
             }
         }
 
