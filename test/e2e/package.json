@@ -1,0 +1,14 @@
+{
+  "name": "better-secrets-e2e-tests",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "cli-testing-library": "^3.0.1",
+    "vite": "^7.2.4",
+    "vitest": "^4.0.13"
+  }
+}
