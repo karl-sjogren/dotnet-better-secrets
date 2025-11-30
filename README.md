@@ -1,4 +1,4 @@
-# Karls Better Secrets Tool [![NuGet Version](https://img.shields.io/nuget/v/Karls.BetterSecretsTool) ![NuGet Downloads](https://img.shields.io/nuget/dt/Karls.BetterSecretsTool)](https://www.nuget.org/packages/Karls.BetterSecretsTool/)
+# Karls Better Secrets Tool [![NuGet Version](https://img.shields.io/nuget/v/Karls.BetterSecretsTool) ![NuGet Downloads](https://img.shields.io/nuget/dt/Karls.BetterSecretsTool)](https://www.nuget.org/packages/Karls.BetterSecretsTool/) [![codecov](https://codecov.io/gh/karl-sjogren/dotnet-better-secrets/graph/badge.svg?token=xPOEUpNYRd)](https://codecov.io/gh/karl-sjogren/dotnet-better-secrets)
 
 An easier way to manage your [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets)
 from the command line.
