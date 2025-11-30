@@ -199,7 +199,9 @@ public class ConsoleUIIntegrationTests : IDisposable {
         var error = process.StandardError.ReadToEnd();
         process.WaitForExit();
 
-        // Return combined output - error output might indicate no secrets
+        // Note: dotnet user-secrets list returns exit code 0 even when no secrets exist,
+        // outputting "No secrets configured for this application."
+        // We combine both streams as the error stream may contain relevant messages.
         return output + error;
     }
 }
