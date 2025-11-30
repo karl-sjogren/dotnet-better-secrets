@@ -214,7 +214,12 @@ public class EndToEndIntegrationTests : IDisposable {
         process.StartInfo.CreateNoWindow = true;
 
         process.Start();
+        var error = process.StandardError.ReadToEnd();
         process.WaitForExit();
+
+        if(process.ExitCode != 0) {
+            throw new InvalidOperationException($"Failed to set secret via CLI. Exit code: {process.ExitCode}. Error: {error}");
+        }
     }
 
     private string RunDotnetUserSecretsList() {
@@ -230,6 +235,10 @@ public class EndToEndIntegrationTests : IDisposable {
         var output = process.StandardOutput.ReadToEnd();
         var error = process.StandardError.ReadToEnd();
         process.WaitForExit();
+
+        if(process.ExitCode != 0) {
+            throw new InvalidOperationException($"Failed to list secrets via CLI. Exit code: {process.ExitCode}. Error: {error}");
+        }
 
         // Note: dotnet user-secrets list returns exit code 0 even when no secrets exist,
         // outputting "No secrets configured for this application."
