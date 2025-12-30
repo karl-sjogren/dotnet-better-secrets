@@ -71,10 +71,19 @@ public class ConsoleUIIntegrationTests : IDisposable {
         secretsStore.Set("ExistingKey", "OriginalValue");
         secretsStore.Save();
 
-        // Simulate: E (edit secret), select the key (Enter to select first), enter new value, then Q (quit)
+        // Simulate: E (edit secret), select the key (Enter to select first), clear existing value, enter new value, then Q (quit)
         console.Input.PushText("E");
         console.Input.PushKey(ConsoleKey.Enter); // Select first (only) item
-        console.Input.PushTextWithEnter("UpdatedValue");
+        // Clear the existing value "OriginalValue" (13 chars) using Home + Delete
+        console.Input.PushKey(ConsoleKey.Home);
+        for(var i = 0; i < "OriginalValue".Length; i++) {
+            console.Input.PushKey(ConsoleKey.Delete);
+        }
+
+        // Type each character individually using PushKey
+        console.Input.PushKey(ConsoleKey.U);
+        console.Input.PushText("pdatedValue");
+        console.Input.PushKey(ConsoleKey.Enter);
         console.Input.PushText("Q");
 
         // Act
@@ -138,7 +147,15 @@ public class ConsoleUIIntegrationTests : IDisposable {
         // Step 2: Edit the secret (it will be the only one, so Enter selects it)
         console.Input.PushText("E");
         console.Input.PushKey(ConsoleKey.Enter);
-        console.Input.PushTextWithEnter("ModifiedValue");
+        // Clear the existing value "InitialValue" (12 chars) using Home + Delete
+        console.Input.PushKey(ConsoleKey.Home);
+        for(var i = 0; i < "InitialValue".Length; i++) {
+            console.Input.PushKey(ConsoleKey.Delete);
+        }
+
+        console.Input.PushKey(ConsoleKey.M);
+        console.Input.PushText("odifiedValue");
+        console.Input.PushKey(ConsoleKey.Enter);
 
         // Step 3: Add another secret (sorted order: SecondKey, WorkflowKey)
         console.Input.PushText("A");
