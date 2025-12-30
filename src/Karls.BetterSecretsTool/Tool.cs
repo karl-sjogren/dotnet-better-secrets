@@ -218,6 +218,7 @@ internal class Tool {
         var response = _console.Prompt(
             new TextPrompt<string>($"[grey]Are you sure you want to delete [red]{Markup.Escape(key)}[/]? ([green]y[/]/[red]n[/]):[/]")
                 .AllowEmpty());
+
         var confirmed = response.Equals("y", StringComparison.OrdinalIgnoreCase) ||
                         response.Equals("yes", StringComparison.OrdinalIgnoreCase);
 
