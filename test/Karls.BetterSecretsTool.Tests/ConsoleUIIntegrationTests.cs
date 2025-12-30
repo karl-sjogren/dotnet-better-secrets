@@ -113,9 +113,10 @@ public class ConsoleUIIntegrationTests : IDisposable {
         secretsStore.Set("SecretToRemove", "SomeValue");
         secretsStore.Save();
 
-        // Simulate: D (delete secret), select the key (Enter to select first), then Q (quit)
+        // Simulate: D (delete secret), select the key (Enter to select first), confirm (y), then Q (quit)
         console.Input.PushText("D");
         console.Input.PushKey(ConsoleKey.Enter); // Select first (only) item
+        console.Input.PushTextWithEnter("y"); // Confirm deletion
         console.Input.PushText("Q");
 
         // Act
@@ -165,6 +166,7 @@ public class ConsoleUIIntegrationTests : IDisposable {
         // Step 4: Remove SecondKey (first in sorted list, so just press Enter)
         console.Input.PushText("D");
         console.Input.PushKey(ConsoleKey.Enter); // Select first item (SecondKey)
+        console.Input.PushTextWithEnter("y"); // Confirm deletion
 
         // Step 5: Quit
         console.Input.PushText("Q");
