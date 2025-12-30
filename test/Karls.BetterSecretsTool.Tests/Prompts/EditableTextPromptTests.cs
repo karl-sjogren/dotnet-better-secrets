@@ -3,19 +3,28 @@ using Spectre.Console.Testing;
 
 namespace Karls.BetterSecretsTool.Tests.Prompts;
 
-public class EditableTextPromptTests {
+public class EditableTextPromptTests : IDisposable {
+    private readonly TestConsole _console;
+
+    public EditableTextPromptTests() {
+        _console = new TestConsole();
+        _console.Interactive();
+    }
+
+    public void Dispose() {
+        _console.Dispose();
+    }
+
     [Fact]
     public void Show_WhenTextEnteredAndEnterPressed_ReturnsText() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
-        console.Input.PushText("hello");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("hello");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("hello");
@@ -24,14 +33,12 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_WhenEnterPressedImmediately_ReturnsEmptyString() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe(string.Empty);
@@ -40,14 +47,12 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_WithDefaultValue_ReturnsDefaultWhenEnterPressed() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:", "default");
 
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("default");
@@ -56,19 +61,17 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_WithDefaultValueAndNewText_ReturnsNewText() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:", "old");
 
         // Clear the default value using backspace and type new text
-        console.Input.PushKey(ConsoleKey.Backspace);
-        console.Input.PushKey(ConsoleKey.Backspace);
-        console.Input.PushKey(ConsoleKey.Backspace);
-        console.Input.PushText("new");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushKey(ConsoleKey.Backspace);
+        _console.Input.PushKey(ConsoleKey.Backspace);
+        _console.Input.PushKey(ConsoleKey.Backspace);
+        _console.Input.PushText("new");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("new");
@@ -77,18 +80,16 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_LeftArrowAndInsert_InsertsAtCorrectPosition() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "ac", move left, insert "b" -> "abc"
-        console.Input.PushText("ac");
-        console.Input.PushKey(ConsoleKey.LeftArrow);
-        console.Input.PushText("b");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("ac");
+        _console.Input.PushKey(ConsoleKey.LeftArrow);
+        _console.Input.PushText("b");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("abc");
@@ -97,20 +98,18 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_RightArrowAfterLeftArrow_MovesCorrectly() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "abc", move left twice, right once, insert "X" -> "abXc"
-        console.Input.PushText("abc");
-        console.Input.PushKey(ConsoleKey.LeftArrow);
-        console.Input.PushKey(ConsoleKey.LeftArrow);
-        console.Input.PushKey(ConsoleKey.RightArrow);
-        console.Input.PushText("X");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("abc");
+        _console.Input.PushKey(ConsoleKey.LeftArrow);
+        _console.Input.PushKey(ConsoleKey.LeftArrow);
+        _console.Input.PushKey(ConsoleKey.RightArrow);
+        _console.Input.PushText("X");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("abXc");
@@ -119,18 +118,16 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_HomeKey_MovesCursorToStart() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "abc", press Home, insert "X" -> "Xabc"
-        console.Input.PushText("abc");
-        console.Input.PushKey(ConsoleKey.Home);
-        console.Input.PushText("X");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("abc");
+        _console.Input.PushKey(ConsoleKey.Home);
+        _console.Input.PushText("X");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("Xabc");
@@ -139,19 +136,17 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_EndKey_MovesCursorToEnd() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "abc", press Home, press End, insert "X" -> "abcX"
-        console.Input.PushText("abc");
-        console.Input.PushKey(ConsoleKey.Home);
-        console.Input.PushKey(ConsoleKey.End);
-        console.Input.PushText("X");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("abc");
+        _console.Input.PushKey(ConsoleKey.Home);
+        _console.Input.PushKey(ConsoleKey.End);
+        _console.Input.PushText("X");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("abcX");
@@ -160,19 +155,17 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_BackspaceAtStart_DoesNothing() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "abc", go to start, try backspace (should do nothing), insert "X" -> "Xabc"
-        console.Input.PushText("abc");
-        console.Input.PushKey(ConsoleKey.Home);
-        console.Input.PushKey(ConsoleKey.Backspace);
-        console.Input.PushText("X");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("abc");
+        _console.Input.PushKey(ConsoleKey.Home);
+        _console.Input.PushKey(ConsoleKey.Backspace);
+        _console.Input.PushText("X");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("Xabc");
@@ -181,18 +174,16 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_BackspaceInMiddle_RemovesCorrectCharacter() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "abc", move left, backspace -> "ac"
-        console.Input.PushText("abc");
-        console.Input.PushKey(ConsoleKey.LeftArrow);
-        console.Input.PushKey(ConsoleKey.Backspace);
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("abc");
+        _console.Input.PushKey(ConsoleKey.LeftArrow);
+        _console.Input.PushKey(ConsoleKey.Backspace);
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("ac");
@@ -201,19 +192,17 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_DeleteInMiddle_RemovesCorrectCharacter() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "abc", move left twice, delete -> "ac"
-        console.Input.PushText("abc");
-        console.Input.PushKey(ConsoleKey.LeftArrow);
-        console.Input.PushKey(ConsoleKey.LeftArrow);
-        console.Input.PushKey(ConsoleKey.Delete);
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("abc");
+        _console.Input.PushKey(ConsoleKey.LeftArrow);
+        _console.Input.PushKey(ConsoleKey.LeftArrow);
+        _console.Input.PushKey(ConsoleKey.Delete);
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("ac");
@@ -222,17 +211,15 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_DeleteAtEnd_DoesNothing() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "abc", delete at end (should do nothing)
-        console.Input.PushText("abc");
-        console.Input.PushKey(ConsoleKey.Delete);
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("abc");
+        _console.Input.PushKey(ConsoleKey.Delete);
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("abc");
@@ -241,19 +228,17 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_LeftArrowAtStart_DoesNothing() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "abc", go to start, left arrow (should do nothing), insert "X" -> "Xabc"
-        console.Input.PushText("abc");
-        console.Input.PushKey(ConsoleKey.Home);
-        console.Input.PushKey(ConsoleKey.LeftArrow);
-        console.Input.PushText("X");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("abc");
+        _console.Input.PushKey(ConsoleKey.Home);
+        _console.Input.PushKey(ConsoleKey.LeftArrow);
+        _console.Input.PushText("X");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("Xabc");
@@ -262,18 +247,16 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_RightArrowAtEnd_DoesNothing() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "abc", right arrow at end (should do nothing), insert "X" -> "abcX"
-        console.Input.PushText("abc");
-        console.Input.PushKey(ConsoleKey.RightArrow);
-        console.Input.PushText("X");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText("abc");
+        _console.Input.PushKey(ConsoleKey.RightArrow);
+        _console.Input.PushText("X");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("abcX");
@@ -282,15 +265,13 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_WhenEscapePressed_ReturnsNull() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
-        console.Input.PushText("some text");
-        console.Input.PushKey(ConsoleKey.Escape);
+        _console.Input.PushText("some text");
+        _console.Input.PushKey(ConsoleKey.Escape);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBeNull();
@@ -299,14 +280,12 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_WithDefaultValueWhenEscapePressed_ReturnsNull() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:", "default");
 
-        console.Input.PushKey(ConsoleKey.Escape);
+        _console.Input.PushKey(ConsoleKey.Escape);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBeNull();
@@ -315,22 +294,20 @@ public class EditableTextPromptTests {
     [Fact]
     public void Show_ComplexEditing_ProducesCorrectResult() {
         // Arrange
-        var console = new TestConsole();
-        console.Interactive();
         var prompt = new EditableTextPrompt("Enter value:");
 
         // Type "hello world", delete "world", type "there" -> "hello there"
-        console.Input.PushText("hello world");
+        _console.Input.PushText("hello world");
         // Delete "world" (5 chars + space = 6 backspaces)
         for(var i = 0; i < 6; i++) {
-            console.Input.PushKey(ConsoleKey.Backspace);
+            _console.Input.PushKey(ConsoleKey.Backspace);
         }
 
-        console.Input.PushText(" there");
-        console.Input.PushKey(ConsoleKey.Enter);
+        _console.Input.PushText(" there");
+        _console.Input.PushKey(ConsoleKey.Enter);
 
         // Act
-        var result = prompt.Show(console);
+        var result = prompt.Show(_console);
 
         // Assert
         result.ShouldBe("hello there");

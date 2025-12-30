@@ -18,6 +18,10 @@ public class EditableTextPrompt : IPrompt<string?> {
     }
 
     public string? Show(IAnsiConsole console) {
+        return ShowAsync(console, CancellationToken.None).GetAwaiter().GetResult();
+    }
+
+    public async Task<string?> ShowAsync(IAnsiConsole console, CancellationToken cancellationToken) {
         var buffer = new StringBuilder(_defaultValue ?? string.Empty);
         var cursorPosition = buffer.Length;
 
@@ -28,8 +32,8 @@ public class EditableTextPrompt : IPrompt<string?> {
             // Initial render
             Render(console, buffer, cursorPosition);
 
-            while(true) {
-                var keyInfo = console.Input.ReadKey(intercept: true);
+            while(!cancellationToken.IsCancellationRequested) {
+                var keyInfo = await console.Input.ReadKeyAsync(intercept: true, cancellationToken).ConfigureAwait(false);
                 if(keyInfo is null) {
                     continue;
                 }
@@ -103,14 +107,13 @@ public class EditableTextPrompt : IPrompt<string?> {
 
                 Render(console, buffer, cursorPosition);
             }
+
+            // If we exit the loop due to cancellation, return null
+            return null;
         } finally {
             // Always restore the terminal cursor
             console.Cursor.Show(true);
         }
-    }
-
-    public Task<string?> ShowAsync(IAnsiConsole console, CancellationToken cancellationToken) {
-        return Task.FromResult(Show(console));
     }
 
     private void Render(IAnsiConsole console, StringBuilder buffer, int cursorPosition) {
