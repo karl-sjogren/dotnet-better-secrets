@@ -292,6 +292,41 @@ public class EditableTextPromptTests : IDisposable {
     }
 
     [Fact]
+    public void Show_CtrlU_ClearsEntireLine() {
+        // Arrange
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // Type "hello world", press Ctrl+U to clear, type "new text"
+        _console.Input.PushText("hello world");
+        _console.Input.PushKey(new ConsoleKeyInfo('\u0015', ConsoleKey.U, shift: false, alt: false, control: true));
+        _console.Input.PushText("new text");
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe("new text");
+    }
+
+    [Fact]
+    public void Show_CtrlU_WithDefaultValue_ClearsEntireLine() {
+        // Arrange
+        var prompt = new EditableTextPrompt("Enter value:", "default value");
+
+        // Press Ctrl+U to clear the default, type "replaced"
+        _console.Input.PushKey(new ConsoleKeyInfo('\u0015', ConsoleKey.U, shift: false, alt: false, control: true));
+        _console.Input.PushText("replaced");
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe("replaced");
+    }
+
+    [Fact]
     public void Show_ComplexEditing_ProducesCorrectResult() {
         // Arrange
         var prompt = new EditableTextPrompt("Enter value:");
