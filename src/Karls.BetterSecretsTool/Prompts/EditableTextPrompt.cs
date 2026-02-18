@@ -142,13 +142,23 @@ public class EditableTextPrompt : IPrompt<string?> {
 
         // Clear all lines from top to bottom
         for(var i = 0; i < linesToClear; i++) {
-            // Move to start of line and clear to end of line using ANSI escape sequence
-            // This is more reliable than writing spaces which can cause wrapping
-            console.Write("\r\x1b[K");
+            // Move to start of line by moving left repeatedly
+            // This ensures Spectre.Console can track the cursor position
+            for(var col = 0; col < consoleWidth; col++) {
+                console.Cursor.MoveLeft();
+            }
+
+            // Clear by writing spaces (safe now since we're at column 0)
+            console.Write(new string(' ', consoleWidth));
+
+            // Move back to start of line
+            for(var col = 0; col < consoleWidth; col++) {
+                console.Cursor.MoveLeft();
+            }
 
             // Move to next line if not the last line
             if(i < linesToClear - 1) {
-                console.WriteLine();
+                console.Cursor.MoveDown();
             }
         }
 
@@ -159,8 +169,10 @@ public class EditableTextPrompt : IPrompt<string?> {
             }
         }
 
-        // Ensure we're at the start of the line
-        console.Write("\r");
+        // Move to start of line using cursor movement
+        for(var i = 0; i < consoleWidth; i++) {
+            console.Cursor.MoveLeft();
+        }
 
         // Render the prompt and current input with cursor indicator
         console.Markup(_promptMarkup);
