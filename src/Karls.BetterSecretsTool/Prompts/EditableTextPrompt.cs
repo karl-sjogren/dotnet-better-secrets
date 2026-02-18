@@ -163,10 +163,13 @@ public class EditableTextPrompt : IPrompt<string?> {
         // Calculate how many lines the current render occupies
         // The prompt markup may contain markup codes, so we need to strip them for length calculation
         var promptText = Markup.Remove(_promptMarkup);
-        var totalDisplayLength = promptText.Length + 1 + text.Length + 1; // +1 for space after prompt, +1 for cursor
-        _previousLineCount = (int)Math.Ceiling((double)totalDisplayLength / consoleWidth);
-        if(_previousLineCount == 0) {
-            _previousLineCount = 1;
-        }
+        // Total visible characters: prompt + space + full text (including cursor position)
+        // The cursor is displayed as an inverted character (part of the text or a space at the end)
+        var displayText = beforeCursor + cursorChar + afterCursor;
+        var totalDisplayLength = promptText.Length + 1 + displayText.Length;
+
+        _previousLineCount = totalDisplayLength > 0
+            ? (int)Math.Ceiling((double)totalDisplayLength / consoleWidth)
+            : 1;
     }
 }
