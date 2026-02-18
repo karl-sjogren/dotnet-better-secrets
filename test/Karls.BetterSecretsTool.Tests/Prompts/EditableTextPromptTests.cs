@@ -347,4 +347,43 @@ public class EditableTextPromptTests : IDisposable {
         // Assert
         result.ShouldBe("hello there");
     }
+
+    [Fact]
+    public void Show_LongValueThatWrapsLines_HandlesCorrectly() {
+        // Arrange
+        // Set a narrow console width to force wrapping
+        _console.Profile.Width = 40;
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // Type a long value that will wrap lines
+        var longText = "This is a very long text value that will definitely wrap to multiple lines";
+        _console.Input.PushText(longText);
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe(longText);
+    }
+
+    [Fact]
+    public void Show_EditLongValueToShortValue_ClearsCorrectly() {
+        // Arrange
+        // Set a narrow console width to force wrapping
+        _console.Profile.Width = 40;
+        var longDefault = "This is a very long default value that will wrap to multiple lines in the console";
+        var prompt = new EditableTextPrompt("Enter value:", longDefault);
+
+        // Clear the long default value and type a short one
+        _console.Input.PushKey(new ConsoleKeyInfo('\u0015', ConsoleKey.U, shift: false, alt: false, control: true));
+        _console.Input.PushText("short");
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe("short");
+    }
 }

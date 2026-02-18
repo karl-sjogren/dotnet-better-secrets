@@ -11,6 +11,7 @@ namespace Karls.BetterSecretsTool.Prompts;
 public class EditableTextPrompt : IPrompt<string?> {
     private readonly string _promptMarkup;
     private readonly string? _defaultValue;
+    private int _previousLineCount = 1;
 
     public EditableTextPrompt(string promptMarkup, string? defaultValue = null) {
         _promptMarkup = promptMarkup;
@@ -124,10 +125,33 @@ public class EditableTextPrompt : IPrompt<string?> {
 
         // Calculate the width needed to clear the line
         // Use a reasonable max width for clearing
-        var clearWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
+        var consoleWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
 
-        // Move to start of line and clear it
-        console.Write("\r" + new string(' ', clearWidth) + "\r");
+        // Clear all lines from the previous render
+        // Move cursor up to the first line of the previous render (if multi-line)
+        if(_previousLineCount > 1) {
+            for(var i = 1; i < _previousLineCount; i++) {
+                console.Write("\x1b[1A"); // Move cursor up one line
+            }
+        }
+
+        // Clear each line from the previous render
+        for(var i = 0; i < _previousLineCount; i++) {
+            console.Write("\r" + new string(' ', consoleWidth) + "\r");
+            if(i < _previousLineCount - 1) {
+                console.Write("\n");
+            }
+        }
+
+        // Move cursor back up to the first line
+        if(_previousLineCount > 1) {
+            for(var i = 1; i < _previousLineCount; i++) {
+                console.Write("\x1b[1A"); // Move cursor up one line
+            }
+        }
+
+        // Move to start of line
+        console.Write("\r");
 
         // Render the prompt and current input with cursor indicator
         console.Markup(_promptMarkup);
@@ -135,5 +159,14 @@ public class EditableTextPrompt : IPrompt<string?> {
         console.Write(Markup.Escape(beforeCursor));
         console.Markup($"[invert]{Markup.Escape(cursorChar)}[/]");
         console.Write(Markup.Escape(afterCursor));
+
+        // Calculate how many lines the current render occupies
+        // The prompt markup may contain markup codes, so we need to strip them for length calculation
+        var promptText = Markup.Remove(_promptMarkup);
+        var totalDisplayLength = promptText.Length + 1 + text.Length + 1; // +1 for space after prompt, +1 for cursor
+        _previousLineCount = (int)Math.Ceiling((double)totalDisplayLength / consoleWidth);
+        if(_previousLineCount == 0) {
+            _previousLineCount = 1;
+        }
     }
 }
