@@ -131,7 +131,7 @@ public class EditableTextPrompt : IPrompt<string?> {
         // Move cursor up to the first line of the previous render (if multi-line)
         if(_previousLineCount > 1) {
             for(var i = 1; i < _previousLineCount; i++) {
-                console.Write("\x1b[1A"); // Move cursor up one line
+                console.Cursor.MoveUp();
             }
         }
 
@@ -146,7 +146,7 @@ public class EditableTextPrompt : IPrompt<string?> {
         // Move cursor back up to the first line
         if(_previousLineCount > 1) {
             for(var i = 1; i < _previousLineCount; i++) {
-                console.Write("\x1b[1A"); // Move cursor up one line
+                console.Cursor.MoveUp();
             }
         }
 
