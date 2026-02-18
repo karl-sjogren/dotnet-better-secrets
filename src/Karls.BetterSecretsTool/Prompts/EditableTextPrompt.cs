@@ -128,34 +128,39 @@ public class EditableTextPrompt : IPrompt<string?> {
         var consoleWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
         var consoleHeight = console.Profile.Height > 0 ? console.Profile.Height : 25;
 
-        // Limit the number of lines we try to clear to the console height minus 1
-        // This prevents issues when text wraps to more lines than the console can display
+        // Determine how many lines from the previous render we need to clear
+        // Limit this to console height to prevent moving cursor beyond visible area
         var linesToClear = Math.Min(_previousLineCount, consoleHeight - 1);
 
-        // Clear all lines from the previous render
         // Move cursor up to the first line of the previous render (if multi-line)
-        if(linesToClear > 1) {
-            for(var i = 1; i < linesToClear; i++) {
+        var linesToMoveUp = linesToClear - 1;
+        if(linesToMoveUp > 0) {
+            for(var i = 0; i < linesToMoveUp; i++) {
                 console.Cursor.MoveUp();
             }
         }
 
-        // Clear each line from the previous render
+        // Clear all lines from top to bottom
         for(var i = 0; i < linesToClear; i++) {
-            console.Write("\r" + new string(' ', consoleWidth) + "\r");
+            // Move to start of line and clear it
+            console.Write("\r");
+            console.Write(new string(' ', consoleWidth));
+            console.Write("\r");
+
+            // Move to next line if not the last line
             if(i < linesToClear - 1) {
-                console.Write("\n");
+                console.WriteLine();
             }
         }
 
-        // Move cursor back up to the first line
+        // Move cursor back up to the first line to start rendering
         if(linesToClear > 1) {
-            for(var i = 1; i < linesToClear; i++) {
+            for(var i = 0; i < linesToClear - 1; i++) {
                 console.Cursor.MoveUp();
             }
         }
 
-        // Move to start of line
+        // Ensure we're at the start of the line
         console.Write("\r");
 
         // Render the prompt and current input with cursor indicator
