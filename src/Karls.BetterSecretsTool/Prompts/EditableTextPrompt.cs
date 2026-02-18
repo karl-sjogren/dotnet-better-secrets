@@ -142,10 +142,9 @@ public class EditableTextPrompt : IPrompt<string?> {
 
         // Clear all lines from top to bottom
         for(var i = 0; i < linesToClear; i++) {
-            // Move to start of line and clear it
-            console.Write("\r");
-            console.Write(new string(' ', consoleWidth));
-            console.Write("\r");
+            // Move to start of line and clear to end of line using ANSI escape sequence
+            // This is more reliable than writing spaces which can cause wrapping
+            console.Write("\r\x1b[K");
 
             // Move to next line if not the last line
             if(i < linesToClear - 1) {
