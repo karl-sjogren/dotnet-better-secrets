@@ -12,6 +12,7 @@ namespace Karls.BetterSecretsTool.Prompts;
 public class EditableTextPrompt : IPrompt<string?> {
     private readonly string _promptMarkup;
     private readonly string? _defaultValue;
+    private readonly int _promptLength;
 
     // Scroll indicators
     private const char _leftIndicator = '◀';
@@ -20,6 +21,7 @@ public class EditableTextPrompt : IPrompt<string?> {
     public EditableTextPrompt(string promptMarkup, string? defaultValue = null) {
         _promptMarkup = promptMarkup;
         _defaultValue = defaultValue;
+        _promptLength = Markup.Remove(promptMarkup).Length;
     }
 
     public string? Show(IAnsiConsole console) {
@@ -124,12 +126,9 @@ public class EditableTextPrompt : IPrompt<string?> {
     private void Render(IAnsiConsole console, string text, int cursorPosition) {
         var consoleWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
 
-        // Calculate the rendered prompt length (without markup)
-        var promptLength = Markup.Remove(_promptMarkup).Length;
-
         // Available width for text display: console width - prompt - space - 1 char safety margin
         // We need at least 1 char for the cursor indicator
-        var availableWidth = consoleWidth - promptLength - 1 - 1;
+        var availableWidth = consoleWidth - _promptLength - 1 - 1;
 
         // Reserve space for scroll indicators if needed
         // We'll calculate this dynamically based on whether we need to scroll
@@ -161,7 +160,7 @@ public class EditableTextPrompt : IPrompt<string?> {
 
             // Render left scroll indicator if needed
             if(showLeftIndicator) {
-                console.Write(_leftIndicator.ToString());
+                console.Markup($"[green]{_leftIndicator}[/]");
             } else if(availableWidth > windowWidth) {
                 // Add space to maintain alignment when no indicator
                 console.Write(" ");
@@ -172,7 +171,7 @@ public class EditableTextPrompt : IPrompt<string?> {
 
             // Render right scroll indicator if needed
             if(showRightIndicator) {
-                console.Write(_rightIndicator.ToString());
+                console.Markup($"[green]{_rightIndicator}[/]");
             }
         }
     }
