@@ -147,11 +147,9 @@ public class EditableTextPrompt : IPrompt<string?> {
             // \x1b[1G moves cursor to column 1 (1-indexed, so column 0 in 0-indexed)
             console.Write("\x1b[1G");
 
-            // Clear by writing spaces (write consoleWidth - 1 to avoid wrapping)
-            console.Write(new string(' ', consoleWidth - 1));
-
-            // Move back to start
-            console.Write("\x1b[1G");
+            // Clear to end of line using ANSI escape sequence
+            // \x1b[K clears from cursor to end of line without risk of wrapping
+            console.Write("\x1b[K");
 
             // Move to next line if not the last line
             if(i < linesToClear - 1) {
