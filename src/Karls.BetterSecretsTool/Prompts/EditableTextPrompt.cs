@@ -128,9 +128,18 @@ public class EditableTextPrompt : IPrompt<string?> {
         var consoleWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
         var consoleHeight = console.Profile.Height > 0 ? console.Profile.Height : 25;
 
-        // Determine how many lines from the previous render we need to clear
-        // Limit this to console height to prevent moving cursor beyond visible area
-        var linesToClear = Math.Min(_previousLineCount, consoleHeight - 1);
+        // Calculate how many lines the NEW render will occupy BEFORE we start clearing
+        // This ensures we clear enough lines
+        var promptText = Markup.Remove(_promptMarkup);
+        var newDisplayText = beforeCursor + cursorChar + afterCursor;
+        var newTotalLength = promptText.Length + 1 + newDisplayText.Length;
+        var newLineCount = newTotalLength > 0
+            ? (int)Math.Ceiling((double)newTotalLength / consoleWidth)
+            : 1;
+
+        // Clear the maximum of previous and new line counts to ensure we clear everything
+        var linesToClear = Math.Max(_previousLineCount, newLineCount);
+        linesToClear = Math.Min(linesToClear, consoleHeight - 1);
 
         // Move cursor up to the first line of the previous render (if multi-line)
         var linesToMoveUp = linesToClear - 1;
@@ -174,16 +183,7 @@ public class EditableTextPrompt : IPrompt<string?> {
         console.Markup($"[invert]{Markup.Escape(cursorChar)}[/]");
         console.Write(Markup.Escape(afterCursor));
 
-        // Calculate how many lines the current render occupies
-        // The prompt markup may contain markup codes, so we need to strip them for length calculation
-        var promptText = Markup.Remove(_promptMarkup);
-        // Total visible characters: prompt + space + full text (including cursor position)
-        // The cursor is displayed as an inverted character (part of the text or a space at the end)
-        var displayText = beforeCursor + cursorChar + afterCursor;
-        var totalDisplayLength = promptText.Length + 1 + displayText.Length;
-
-        _previousLineCount = totalDisplayLength > 0
-            ? (int)Math.Ceiling((double)totalDisplayLength / consoleWidth)
-            : 1;
+        // Store the line count for next render
+        _previousLineCount = newLineCount;
     }
 }
