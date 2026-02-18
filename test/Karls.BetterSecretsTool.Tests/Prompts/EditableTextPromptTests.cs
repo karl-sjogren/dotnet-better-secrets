@@ -386,4 +386,25 @@ public class EditableTextPromptTests : IDisposable {
         // Assert
         result.ShouldBe("short");
     }
+
+    [Fact]
+    public void Show_ValueExceedsConsoleHeight_HandlesCorrectly() {
+        // Arrange
+        // Set a narrow console width and limited height to simulate extreme wrapping
+        _console.Profile.Width = 40;
+        _console.Profile.Height = 5;
+
+        // Create a very long text that would exceed console height when wrapped
+        var veryLongText = new string('x', 250); // This will wrap to many lines
+        var prompt = new EditableTextPrompt("Enter value:", veryLongText);
+
+        // Just press enter to accept the default
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe(veryLongText);
+    }
 }

@@ -126,26 +126,31 @@ public class EditableTextPrompt : IPrompt<string?> {
         // Calculate the width needed to clear the line
         // Use a reasonable max width for clearing
         var consoleWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
+        var consoleHeight = console.Profile.Height > 0 ? console.Profile.Height : 25;
+
+        // Limit the number of lines we try to clear to the console height minus 1
+        // This prevents issues when text wraps to more lines than the console can display
+        var linesToClear = Math.Min(_previousLineCount, consoleHeight - 1);
 
         // Clear all lines from the previous render
         // Move cursor up to the first line of the previous render (if multi-line)
-        if(_previousLineCount > 1) {
-            for(var i = 1; i < _previousLineCount; i++) {
+        if(linesToClear > 1) {
+            for(var i = 1; i < linesToClear; i++) {
                 console.Cursor.MoveUp();
             }
         }
 
         // Clear each line from the previous render
-        for(var i = 0; i < _previousLineCount; i++) {
+        for(var i = 0; i < linesToClear; i++) {
             console.Write("\r" + new string(' ', consoleWidth) + "\r");
-            if(i < _previousLineCount - 1) {
+            if(i < linesToClear - 1) {
                 console.Write("\n");
             }
         }
 
         // Move cursor back up to the first line
-        if(_previousLineCount > 1) {
-            for(var i = 1; i < _previousLineCount; i++) {
+        if(linesToClear > 1) {
+            for(var i = 1; i < linesToClear; i++) {
                 console.Cursor.MoveUp();
             }
         }
