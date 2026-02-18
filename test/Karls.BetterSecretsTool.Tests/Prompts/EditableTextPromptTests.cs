@@ -474,9 +474,10 @@ public class EditableTextPromptTests : IDisposable {
         _console.Profile.Width = 40;
         var prompt = new EditableTextPrompt("Enter value:");
 
-        // "Enter value: " is 13 chars, so we have about 26 chars left
-        // This should be right at the edge before scrolling kicks in
-        var exactText = new string('a', 26);
+        // "Enter value:" is 12 chars, plus space = 13, plus 1 safety margin = 14
+        // Available width = 40 - 14 = 26 chars for text + cursor
+        // With 25 chars of text + 1 cursor indicator = 26, we're exactly at the limit
+        var exactText = new string('a', 25);
         _console.Input.PushText(exactText);
         _console.Input.PushKey(ConsoleKey.Enter);
 
