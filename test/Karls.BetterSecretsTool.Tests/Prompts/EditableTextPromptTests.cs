@@ -349,7 +349,7 @@ public class EditableTextPromptTests : IDisposable {
     }
 
     [Fact]
-    public void Show_WithLongText_RendersCorrectly() {
+    public void Show_WithLongText_RendersWithScrollIndicators() {
         // Arrange
         // Set a narrow console width to force horizontal scrolling
         _console.Profile.Width = 40;
@@ -366,6 +366,65 @@ public class EditableTextPromptTests : IDisposable {
 
         // Assert
         result.ShouldBe(longText);
+
+        var output = _console.Output;
+        // Should have left scroll indicator (◀) since cursor is at end and text extends left
+        output.ShouldContain("◀");
+        // Should NOT have right scroll indicator since cursor is at the end
+        output.ShouldNotContain("▶");
+    }
+
+    [Fact]
+    public void Show_WithLongTextAndCursorAtStart_ShowsRightScrollIndicator() {
+        // Arrange
+        _console.Profile.Width = 40;
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // Type long text, then move cursor to the beginning
+        var longText = new string('a', 50);
+        _console.Input.PushText(longText);
+        _console.Input.PushKey(ConsoleKey.Home);
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe(longText);
+
+        var output = _console.Output;
+        // Should have right scroll indicator (▶) since cursor is at start and text extends right
+        output.ShouldContain("▶");
+    }
+
+    [Fact]
+    public void Show_WithLongTextAndCursorInMiddle_ShowsBothScrollIndicators() {
+        // Arrange
+        _console.Profile.Width = 40;
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // Type long text, then move cursor to the middle
+        var longText = new string('a', 50);
+        _console.Input.PushText(longText);
+        _console.Input.PushKey(ConsoleKey.Home);
+        // Move 25 positions right to get to the middle
+        for(var i = 0; i < 25; i++) {
+            _console.Input.PushKey(ConsoleKey.RightArrow);
+        }
+
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe(longText);
+
+        var output = _console.Output;
+        // Should have left scroll indicator (◀) since there's text to the left
+        output.ShouldContain("◀");
+        // Should have right scroll indicator (▶) since there's text to the right
+        output.ShouldContain("▶");
     }
 
     [Fact]
