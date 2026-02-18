@@ -214,6 +214,18 @@ internal class Tool {
 
     private void RemoveSecret(ISecretsStore secretStore) {
         var key = SelectKey(secretStore, "[grey]Select a secret to delete:[/]");
+
+        var response = _console.Prompt(
+            new TextPrompt<string>($"[grey]Are you sure you want to delete [red]{Markup.Escape(key)}[/]? ([green]y[/]/[red]n[/]):[/]")
+                .AllowEmpty());
+
+        var confirmed = response.Equals("y", StringComparison.OrdinalIgnoreCase) ||
+                        response.Equals("yes", StringComparison.OrdinalIgnoreCase);
+
+        if(!confirmed) {
+            return;
+        }
+
         secretStore.Remove(key);
         secretStore.Save();
     }
@@ -222,15 +234,30 @@ internal class Tool {
         var key = SelectKey(secretStore, "[grey]Select a secret to edit:[/]");
 
         _console.MarkupLine($"[grey]Editing secret [green]{key}[/][/].");
-        _console.MarkupLineInterpolated($"[grey]Current value: [yellow]{secretStore[key]}[/][/]");
-        var newValue = _console.Ask<string>("[grey]Enter new value:[/]");
+
+        var currentValue = secretStore[key];
+        _console.MarkupLineInterpolated($"[grey]Current value: [yellow]{currentValue}[/][/]");
+
+        var newValue = _console.EditablePrompt("[grey]Enter new value (Escape to cancel):[/]", currentValue);
+        if(newValue is null) {
+            return;
+        }
+
         secretStore.Set(key, newValue);
         secretStore.Save();
     }
 
     private void AddSecret(ISecretsStore secretStore) {
-        var key = _console.Ask<string>("[grey]Enter secret [green]key[/][/]:");
-        var value = _console.Ask<string>("[grey]Enter secret [yellow]value[/][/]:");
+        var key = _console.EditablePrompt("[grey]Enter secret [green]key[/] (Escape to cancel)[/]:");
+        if(key is null) {
+            return;
+        }
+
+        var value = _console.EditablePrompt("[grey]Enter secret [yellow]value[/] (Escape to cancel)[/]:");
+        if(value is null) {
+            return;
+        }
+
         secretStore.Set(key, value);
         secretStore.Save();
     }

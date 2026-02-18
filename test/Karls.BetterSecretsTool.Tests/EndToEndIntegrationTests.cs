@@ -116,10 +116,18 @@ public class EndToEndIntegrationTests : IDisposable {
         console.Interactive();
         var tool = CreateRealTool(console);
 
-        // Simulate: E (edit secret), select the key (Enter to select first), enter new value, then Q (quit)
+        // Simulate: E (edit secret), select the key (Enter to select first), clear existing value, enter new value, then Q (quit)
         console.Input.PushText("E");
         console.Input.PushKey(ConsoleKey.Enter); // Select first (only) item
-        console.Input.PushTextWithEnter("UpdatedValue");
+        // Clear the existing value "OriginalValue" (13 chars) using Home + Delete
+        console.Input.PushKey(ConsoleKey.Home);
+        for(var i = 0; i < "OriginalValue".Length; i++) {
+            console.Input.PushKey(ConsoleKey.Delete);
+        }
+
+        console.Input.PushKey(ConsoleKey.U);
+        console.Input.PushText("pdatedValue");
+        console.Input.PushKey(ConsoleKey.Enter);
         console.Input.PushText("Q");
 
         // Act
@@ -141,9 +149,10 @@ public class EndToEndIntegrationTests : IDisposable {
         console.Interactive();
         var tool = CreateRealTool(console);
 
-        // Simulate: D (delete secret), select the key (Enter to select first), then Q (quit)
+        // Simulate: D (delete secret), select the key (Enter to select first), confirm (y), then Q (quit)
         console.Input.PushText("D");
         console.Input.PushKey(ConsoleKey.Enter); // Select first (only) item
+        console.Input.PushTextWithEnter("y"); // Confirm deletion
         console.Input.PushText("Q");
 
         // Act
@@ -170,7 +179,15 @@ public class EndToEndIntegrationTests : IDisposable {
         // Step 2: Edit the secret (it will be the only one, so Enter selects it)
         console.Input.PushText("E");
         console.Input.PushKey(ConsoleKey.Enter);
-        console.Input.PushTextWithEnter("ModifiedValue");
+        // Clear the existing value "InitialValue" (12 chars) using Home + Delete
+        console.Input.PushKey(ConsoleKey.Home);
+        for(var i = 0; i < "InitialValue".Length; i++) {
+            console.Input.PushKey(ConsoleKey.Delete);
+        }
+
+        console.Input.PushKey(ConsoleKey.M);
+        console.Input.PushText("odifiedValue");
+        console.Input.PushKey(ConsoleKey.Enter);
 
         // Step 3: Add another secret (sorted order: SecondKey, WorkflowKey)
         console.Input.PushText("A");
@@ -180,6 +197,7 @@ public class EndToEndIntegrationTests : IDisposable {
         // Step 4: Remove SecondKey (first in sorted list, so just press Enter)
         console.Input.PushText("D");
         console.Input.PushKey(ConsoleKey.Enter); // Select first item (SecondKey)
+        console.Input.PushTextWithEnter("y"); // Confirm deletion
 
         // Step 5: Quit
         console.Input.PushText("Q");
