@@ -7,10 +7,15 @@ namespace Karls.BetterSecretsTool.Prompts;
 /// A text prompt that supports full cursor navigation with arrow keys,
 /// Home/End, and editing at any position within the text.
 /// Returns null if the user presses Escape to cancel.
+/// Uses horizontal scrolling when text exceeds available width.
 /// </summary>
 public class EditableTextPrompt : IPrompt<string?> {
     private readonly string _promptMarkup;
     private readonly string? _defaultValue;
+
+    // Scroll indicators
+    private const char _leftIndicator = '◀';
+    private const char _rightIndicator = '▶';
 
     public EditableTextPrompt(string promptMarkup, string? defaultValue = null) {
         _promptMarkup = promptMarkup;
@@ -30,7 +35,7 @@ public class EditableTextPrompt : IPrompt<string?> {
 
         try {
             // Initial render
-            Render(console, buffer, cursorPosition);
+            Render(console, buffer.ToString(), cursorPosition);
 
             while(!cancellationToken.IsCancellationRequested) {
                 var keyInfo = await console.Input.ReadKeyAsync(intercept: true, cancellationToken).ConfigureAwait(false);
@@ -105,7 +110,7 @@ public class EditableTextPrompt : IPrompt<string?> {
                         break;
                 }
 
-                Render(console, buffer, cursorPosition);
+                Render(console, buffer.ToString(), cursorPosition);
             }
 
             // If we exit the loop due to cancellation, return null
@@ -116,24 +121,120 @@ public class EditableTextPrompt : IPrompt<string?> {
         }
     }
 
-    private void Render(IAnsiConsole console, StringBuilder buffer, int cursorPosition) {
-        var text = buffer.ToString();
-        var beforeCursor = text[..cursorPosition];
-        var cursorChar = cursorPosition < text.Length ? text[cursorPosition].ToString() : " ";
-        var afterCursor = cursorPosition < text.Length - 1 ? text[(cursorPosition + 1)..] : string.Empty;
+    private void Render(IAnsiConsole console, string text, int cursorPosition) {
+        var consoleWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
 
-        // Calculate the width needed to clear the line
-        // Use a reasonable max width for clearing
-        var clearWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
+        // Calculate the rendered prompt length (without markup)
+        var promptLength = Markup.Remove(_promptMarkup).Length;
 
-        // Move to start of line and clear it
-        console.Write("\r" + new string(' ', clearWidth) + "\r");
+        // Available width for text display: console width - prompt - space - 1 char safety margin
+        // We need at least 1 char for the cursor indicator
+        var availableWidth = consoleWidth - promptLength - 1 - 1;
 
-        // Render the prompt and current input with cursor indicator
+        // Reserve space for scroll indicators if needed
+        // We'll calculate this dynamically based on whether we need to scroll
+        var textDisplayLength = text.Length + 1; // +1 for cursor indicator (space at end when cursor is at end)
+
+        // Clear the current line and return to start
+        console.Write("\r" + new string(' ', consoleWidth - 1) + "\r");
+
+        // Render the prompt
         console.Markup(_promptMarkup);
         console.Write(" ");
-        console.Write(Markup.Escape(beforeCursor));
-        console.Markup($"[invert]{Markup.Escape(cursorChar)}[/]");
-        console.Write(Markup.Escape(afterCursor));
+
+        if(textDisplayLength <= availableWidth) {
+            // Text fits - render normally without scrolling
+            RenderTextWithCursor(console, text, cursorPosition, 0, text.Length);
+        } else {
+            // Text doesn't fit - need horizontal scrolling
+            // Reserve 1 char on each side for potential scroll indicators
+            var windowWidth = availableWidth - 2; // -2 for potential ◀ and ▶
+
+            if(windowWidth < 1) {
+                // Console is too narrow, just show what we can
+                windowWidth = availableWidth;
+            }
+
+            // Calculate window position to keep cursor roughly centered
+            var (windowStart, windowEnd, showLeftIndicator, showRightIndicator) =
+                CalculateWindow(text.Length, cursorPosition, windowWidth);
+
+            // Render left scroll indicator if needed
+            if(showLeftIndicator) {
+                console.Write(_leftIndicator.ToString());
+            } else if(availableWidth > windowWidth) {
+                // Add space to maintain alignment when no indicator
+                console.Write(" ");
+            }
+
+            // Render the visible portion of text with cursor
+            RenderTextWithCursor(console, text, cursorPosition, windowStart, windowEnd);
+
+            // Render right scroll indicator if needed
+            if(showRightIndicator) {
+                console.Write(_rightIndicator.ToString());
+            }
+        }
+    }
+
+    private static (int windowStart, int windowEnd, bool showLeftIndicator, bool showRightIndicator) CalculateWindow(
+        int textLength,
+        int cursorPosition,
+        int windowWidth) {
+        // The visible content needs to include the cursor indicator
+        // If cursor is at the end, we need +1 for the space that shows the cursor
+        var contentLength = textLength + 1;
+
+        // Try to center the cursor in the window
+        var idealStart = cursorPosition - (windowWidth / 2);
+
+        // Clamp to valid range
+        var windowStart = Math.Max(0, idealStart);
+        var windowEnd = windowStart + windowWidth;
+
+        // If window extends past the end, shift it back
+        if(windowEnd > contentLength) {
+            windowEnd = contentLength;
+            windowStart = Math.Max(0, windowEnd - windowWidth);
+        }
+
+        // Determine if we need scroll indicators
+        var showLeftIndicator = windowStart > 0;
+        var showRightIndicator = windowEnd < contentLength;
+
+        return (windowStart, Math.Min(windowEnd, textLength), showLeftIndicator, showRightIndicator);
+    }
+
+    private static void RenderTextWithCursor(
+        IAnsiConsole console,
+        string text,
+        int cursorPosition,
+        int windowStart,
+        int windowEnd) {
+        // Determine what parts of the text to show
+        var visibleText = text[windowStart..windowEnd];
+        var cursorPosInWindow = cursorPosition - windowStart;
+
+        // Is the cursor within the visible window?
+        if(cursorPosInWindow >= 0 && cursorPosInWindow <= visibleText.Length) {
+            // Text before cursor (within window)
+            if(cursorPosInWindow > 0) {
+                console.Write(Markup.Escape(visibleText[..cursorPosInWindow]));
+            }
+
+            // Cursor character (inverted)
+            var cursorChar = cursorPosInWindow < visibleText.Length
+                ? visibleText[cursorPosInWindow].ToString()
+                : " ";
+            console.Markup($"[invert]{Markup.Escape(cursorChar)}[/]");
+
+            // Text after cursor (within window)
+            if(cursorPosInWindow < visibleText.Length - 1) {
+                console.Write(Markup.Escape(visibleText[(cursorPosInWindow + 1)..]));
+            }
+        } else {
+            // Cursor is outside visible window (shouldn't happen with proper window calculation)
+            console.Write(Markup.Escape(visibleText));
+        }
     }
 }

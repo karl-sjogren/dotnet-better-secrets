@@ -347,4 +347,143 @@ public class EditableTextPromptTests : IDisposable {
         // Assert
         result.ShouldBe("hello there");
     }
+
+    [Fact]
+    public void Show_WithLongText_RendersCorrectly() {
+        // Arrange
+        // Set a narrow console width to force horizontal scrolling
+        _console.Profile.Width = 40;
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // Type text that exceeds console width (prompt "Enter value:" = 12 chars + space + text)
+        // With width 40, this will trigger horizontal scrolling
+        var longText = new string('a', 50);
+        _console.Input.PushText(longText);
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe(longText);
+    }
+
+    [Fact]
+    public void Show_WhenTextExpandsToRequireScrolling_HandlesCorrectly() {
+        // Arrange
+        _console.Profile.Width = 40;
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // Start with short text, then add more to trigger horizontal scrolling
+        _console.Input.PushText("short");
+        // Add more text to exceed the available width
+        _console.Input.PushText(new string('x', 40));
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe("short" + new string('x', 40));
+    }
+
+    [Fact]
+    public void Show_WhenTextShrinksFromScrolling_ReturnsCorrectValue() {
+        // Arrange
+        _console.Profile.Width = 40;
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // Type long text that requires scrolling
+        var longText = new string('a', 50);
+        _console.Input.PushText(longText);
+
+        // Delete most of it using Ctrl+U to clear, then type short text
+        _console.Input.PushKey(new ConsoleKeyInfo('\u0015', ConsoleKey.U, shift: false, alt: false, control: true));
+        _console.Input.PushText("short");
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe("short");
+    }
+
+    [Fact]
+    public void Show_WithTextExactlyAtConsoleWidth_HandlesEdgeCase() {
+        // Arrange
+        _console.Profile.Width = 40;
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // "Enter value: " is 13 chars, so we have about 26 chars left
+        // This should be right at the edge before scrolling kicks in
+        var exactText = new string('a', 26);
+        _console.Input.PushText(exactText);
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert
+        result.ShouldBe(exactText);
+    }
+
+    [Fact]
+    public void Show_WithLongText_CursorNavigationWorksCorrectly() {
+        // Arrange
+        _console.Profile.Width = 40;
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // Type long text, navigate to the middle, insert a character
+        var longText = new string('a', 50);
+        _console.Input.PushText(longText);
+
+        // Move cursor to beginning
+        _console.Input.PushKey(ConsoleKey.Home);
+
+        // Move 25 positions to the right (middle of the text)
+        for(var i = 0; i < 25; i++) {
+            _console.Input.PushKey(ConsoleKey.RightArrow);
+        }
+
+        // Insert 'X' in the middle
+        _console.Input.PushText("X");
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert - X should be at position 25
+        result.ShouldBe(new string('a', 25) + "X" + new string('a', 25));
+    }
+
+    [Fact]
+    public void Show_WithLongText_BackspaceInMiddleWorksCorrectly() {
+        // Arrange
+        _console.Profile.Width = 40;
+        var prompt = new EditableTextPrompt("Enter value:");
+
+        // Type long text with a marker in the middle
+        var longText = new string('a', 25) + "XY" + new string('a', 25);
+        _console.Input.PushText(longText);
+
+        // Move cursor to beginning
+        _console.Input.PushKey(ConsoleKey.Home);
+
+        // Move to position 27 (after 'Y')
+        for(var i = 0; i < 27; i++) {
+            _console.Input.PushKey(ConsoleKey.RightArrow);
+        }
+
+        // Backspace twice to delete 'Y' and 'X'
+        _console.Input.PushKey(ConsoleKey.Backspace);
+        _console.Input.PushKey(ConsoleKey.Backspace);
+        _console.Input.PushKey(ConsoleKey.Enter);
+
+        // Act
+        var result = prompt.Show(_console);
+
+        // Assert - XY should be removed
+        result.ShouldBe(new string('a', 50));
+    }
 }
