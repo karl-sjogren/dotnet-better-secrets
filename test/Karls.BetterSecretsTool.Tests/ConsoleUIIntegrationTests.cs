@@ -192,6 +192,87 @@ public class ConsoleUIIntegrationTests : IDisposable {
         listOutput.ShouldNotContain("InitialValue");
     }
 
+    [Fact]
+    public void RenameSecret_WhenUserRenamesSecret_SecretIsRenamed() {
+        // Arrange
+        var console = new TestConsole();
+        console.Interactive();
+        var tool = CreateTool(console);
+        var secretsStore = CreateSecretsStore();
+
+        // Pre-populate with an existing secret
+        secretsStore.Set("OldSecretName", "SecretValue");
+        secretsStore.Save();
+
+        // Simulate: R (rename secret), select the key (Enter to select first),
+        // clear old name and type new name, then Q (quit)
+        console.Input.PushText("R");
+        console.Input.PushKey(ConsoleKey.Enter); // Select first (only) item
+        console.Input.PushKey(ConsoleKey.Home);
+        for(var i = 0; i < "OldSecretName".Length; i++) {
+            console.Input.PushKey(ConsoleKey.Delete);
+        }
+
+        console.Input.PushKey(ConsoleKey.N);
+        console.Input.PushText("ewSecretName");
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushText("Q");
+
+        // Act
+        tool.MainLoop(null, secretsStore);
+
+        // Assert - Verify the secret was renamed by reading from the filesystem
+        var verificationStore = CreateSecretsStore();
+        verificationStore.ContainsKey("OldSecretName").ShouldBeFalse();
+        verificationStore.ContainsKey("NewSecretName").ShouldBeTrue();
+        verificationStore["NewSecretName"].ShouldBe("SecretValue");
+
+        // Also verify using dotnet user-secrets list
+        var listOutput = RunDotnetUserSecretsList();
+        listOutput.ShouldNotContain("OldSecretName");
+        listOutput.ShouldContain("NewSecretName");
+        listOutput.ShouldContain("SecretValue");
+    }
+
+    [Fact]
+    public void RenameSecret_WhenNewNameAlreadyExists_DoesNotOverwrite() {
+        // Arrange
+        var console = new TestConsole();
+        console.Interactive();
+        var tool = CreateTool(console);
+        var secretsStore = CreateSecretsStore();
+
+        // Pre-populate with two secrets
+        secretsStore.Set("FirstKey", "FirstValue");
+        secretsStore.Set("SecondKey", "SecondValue");
+        secretsStore.Save();
+
+        // Simulate: R (rename), select FirstKey (first in sorted list),
+        // clear and type SecondKey (already exists), dismiss error, then Q (quit)
+        console.Input.PushText("R");
+        console.Input.PushKey(ConsoleKey.Enter); // Select FirstKey
+        console.Input.PushKey(ConsoleKey.Home);
+        for(var i = 0; i < "FirstKey".Length; i++) {
+            console.Input.PushKey(ConsoleKey.Delete);
+        }
+
+        console.Input.PushKey(ConsoleKey.S);
+        console.Input.PushText("econdKey");
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushKey(ConsoleKey.Enter); // Dismiss error
+        console.Input.PushText("Q");
+
+        // Act
+        tool.MainLoop(null, secretsStore);
+
+        // Assert - Both secrets should remain unchanged
+        var verificationStore = CreateSecretsStore();
+        verificationStore.ContainsKey("FirstKey").ShouldBeTrue();
+        verificationStore["FirstKey"].ShouldBe("FirstValue");
+        verificationStore.ContainsKey("SecondKey").ShouldBeTrue();
+        verificationStore["SecondKey"].ShouldBe("SecondValue");
+    }
+
     private Tool CreateTool(TestConsole console) {
         var projectFinder = A.Dummy<IMsBuildProjectFinder>();
         var projectIdResolver = A.Dummy<IProjectIdResolver>();

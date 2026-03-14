@@ -79,7 +79,7 @@ internal class Tool {
             RenderTable(secretsStore);
 
             _console.WriteLine();
-            _console.MarkupLine("[grey]Type [green]A[/] to add, [green]E[/] to edit or [green]D[/] to delete secrets. Type [green]S[/] to show single value or [green]J[/] to show all values as JSON.[/]");
+            _console.MarkupLine("[grey]Type [green]A[/] to add, [green]E[/] to edit, [green]R[/] to rename or [green]D[/] to delete secrets. Type [green]S[/] to show single value or [green]J[/] to show all values as JSON.[/]");
 
             if(!string.IsNullOrWhiteSpace(keyVaultName)) {
                 _console.MarkupLineInterpolated($"[grey]Type [green]K[/] to download secrets from key vault [yellow]{keyVaultName}[/][/].");
@@ -112,6 +112,8 @@ internal class Tool {
             AddSecret(secretsStore);
         } else if(prompt == "E") {
             EditSecret(secretsStore);
+        } else if(prompt == "R") {
+            RenameSecret(secretsStore);
         } else if(prompt == "D") {
             RemoveSecret(secretsStore);
         } else if(prompt == "S") {
@@ -244,6 +246,27 @@ internal class Tool {
         }
 
         secretStore.Set(key, newValue);
+        secretStore.Save();
+    }
+
+    private void RenameSecret(ISecretsStore secretStore) {
+        var oldKey = SelectKey(secretStore, "[grey]Select a secret to rename:[/]");
+
+        var newKey = _console.EditablePrompt("[grey]Enter new name (Escape to cancel):[/]", oldKey);
+        if(newKey is null || newKey == oldKey) {
+            return;
+        }
+
+        if(secretStore.ContainsKey(newKey)) {
+            _console.MarkupLineInterpolated($"[red]Error:[/] A secret with the name [green]{Markup.Escape(newKey)}[/] already exists.");
+            _console.MarkupLine("[grey]Press any key to continue...[/]");
+            _console.Input.ReadKey(true);
+            return;
+        }
+
+        var value = secretStore[oldKey];
+        secretStore.Remove(oldKey);
+        secretStore.Set(newKey, value);
         secretStore.Save();
     }
 

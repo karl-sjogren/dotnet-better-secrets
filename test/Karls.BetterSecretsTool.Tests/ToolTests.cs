@@ -153,4 +153,85 @@ public class ToolTests {
         // Assert
         result.ShouldBe(false);
     }
+
+    [Fact]
+    public void HandleInput_WhenRIsPressed_RenamesSecret() {
+        // Arrange
+        var tool = new Tool(_console, _fileSystem, _projectFinder, _projectIdResolver, _secretsStoreFactory);
+
+        var secretsStore = new InMemorySecretsStore();
+        secretsStore.Set("OldKey", "SomeValue");
+
+        // R to rename, Enter to select the only item, clear "OldKey" and type "NewKey", Enter to confirm
+        _console.Input.PushText("R");
+        _console.Input.PushKey(ConsoleKey.Enter); // Select OldKey
+        _console.Input.PushKey(ConsoleKey.Home);
+        for(var i = 0; i < "OldKey".Length; i++) {
+            _console.Input.PushKey(ConsoleKey.Delete);
+        }
+
+        _console.Input.PushTextWithEnter("NewKey");
+
+        // Act
+        var result = tool.HandleInput(null, secretsStore);
+
+        // Assert
+        result.ShouldBe(false);
+        secretsStore.ContainsKey("OldKey").ShouldBeFalse();
+        secretsStore.ContainsKey("NewKey").ShouldBeTrue();
+        secretsStore["NewKey"].ShouldBe("SomeValue");
+    }
+
+    [Fact]
+    public void HandleInput_WhenRIsPressed_AndNewNameAlreadyExists_DoesNotRename() {
+        // Arrange
+        var tool = new Tool(_console, _fileSystem, _projectFinder, _projectIdResolver, _secretsStoreFactory);
+
+        var secretsStore = new InMemorySecretsStore();
+        secretsStore.Set("KeyA", "ValueA");
+        secretsStore.Set("KeyB", "ValueB");
+
+        // R to rename, select KeyA (first in sorted list), try to rename to KeyB (already exists)
+        _console.Input.PushText("R");
+        _console.Input.PushKey(ConsoleKey.Enter); // Select KeyA
+        _console.Input.PushKey(ConsoleKey.Home);
+        for(var i = 0; i < "KeyA".Length; i++) {
+            _console.Input.PushKey(ConsoleKey.Delete);
+        }
+
+        _console.Input.PushTextWithEnter("KeyB");
+        _console.Input.PushKey(ConsoleKey.Enter); // Dismiss error message
+
+        // Act
+        var result = tool.HandleInput(null, secretsStore);
+
+        // Assert
+        result.ShouldBe(false);
+        secretsStore.ContainsKey("KeyA").ShouldBeTrue();
+        secretsStore["KeyA"].ShouldBe("ValueA");
+        secretsStore.ContainsKey("KeyB").ShouldBeTrue();
+        secretsStore["KeyB"].ShouldBe("ValueB");
+    }
+
+    [Fact]
+    public void HandleInput_WhenRIsPressed_AndEscapeIsPressedDuringRename_DoesNotRename() {
+        // Arrange
+        var tool = new Tool(_console, _fileSystem, _projectFinder, _projectIdResolver, _secretsStoreFactory);
+
+        var secretsStore = new InMemorySecretsStore();
+        secretsStore.Set("OldKey", "SomeValue");
+
+        // R to rename, Enter to select the only item, Escape to cancel
+        _console.Input.PushText("R");
+        _console.Input.PushKey(ConsoleKey.Enter); // Select OldKey
+        _console.Input.PushKey(ConsoleKey.Escape); // Cancel rename
+
+        // Act
+        var result = tool.HandleInput(null, secretsStore);
+
+        // Assert
+        result.ShouldBe(false);
+        secretsStore.ContainsKey("OldKey").ShouldBeTrue();
+        secretsStore["OldKey"].ShouldBe("SomeValue");
+    }
 }
