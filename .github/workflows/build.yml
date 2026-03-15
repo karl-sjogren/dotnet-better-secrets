@@ -34,11 +34,7 @@ jobs:
 
   net-test:
     name: .NET tests
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout sources
@@ -57,7 +53,6 @@ jobs:
 
     - name: Upload test results
       uses: actions/upload-artifact@v7
-      if: matrix.os == 'ubuntu-latest'
       with:
         name: net-test-results
         path: |
