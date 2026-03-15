@@ -49,7 +49,7 @@ jobs:
       run: dotnet restore --verbosity minimal
 
     - name: Run .NET tests
-      run: dotnet test --configuration Release
+      run: dotnet test --coverage --coverage-output-format cobertura --coverage-settings ./test/coverage.config --report-trx --configuration Release --no-progress
 
     - name: Upload test results
       uses: actions/upload-artifact@v7
@@ -57,7 +57,7 @@ jobs:
         name: net-test-results
         path: |
           ./**/*.trx
-          ./**/coverage.cobertura.xml
+          ./**/*.cobertura.xml
 
   test-and-coverage-results:
     name: Publish test and coverage results
@@ -89,7 +89,7 @@ jobs:
       working-directory: ./
 
     - name: Download historial coverage
-      uses: dawidd6/action-download-artifact@v16
+      uses: dawidd6/action-download-artifact@v17
       with:
         workflow_conclusion: success
         branch: ${{ github.head_ref }}
@@ -107,10 +107,10 @@ jobs:
     - name: Generate coverage report
       uses: danielpalme/ReportGenerator-GitHub-Action@v5
       with:
-        reports: '../**/coverage.cobertura.xml;../**/cobertura-coverage.xml'
+        reports: './**/*.cobertura.xml;./**/cobertura-coverage.xml'
         targetdir: 'coverage-report'
         historydir: 'coverage-history'
-        reporttypes: 'Html;MarkdownSummary;MarkdownDeltaSummary;Cobertura'
+        reporttypes: 'MarkdownSummary;Cobertura'
         assemblyfilters: '-xunit*'
         verbosity: 'Info'
 
