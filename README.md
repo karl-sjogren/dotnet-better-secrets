@@ -25,6 +25,25 @@ dotnet tool install -g Karls.BetterSecretsTool
 > tool ensures that everyone working on the project uses the same version of
 > the tool and that new versions are picked up automatically by tools such
 > as Dependabot/Renovatebot.
+>
+> NativeAOT binaries are distributed inside the NuGet .NET tool package.
+> There is no separate NativeAOT binary distribution channel.
+
+### NativeAOT support
+
+NativeAOT binaries are currently published for:
+
+- `linux-x64`
+- `win-x64`
+- `osx-x64`
+
+NativeAOT support is distributed only through the NuGet tool package.
+
+Local NativeAOT validation command:
+
+```bash
+dotnet publish ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj --configuration Release --runtime <RID> /p:PublishNativeAot=true
+```
 
 ## Usage
 
