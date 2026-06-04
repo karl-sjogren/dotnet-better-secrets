@@ -132,6 +132,54 @@ jobs:
         path: ./artifacts/*.nupkg
         if-no-files-found: error
 
+  net-nativeaot:
+    name: .NET NativeAOT publish (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    needs: [ net-test ]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+          - os: macos-13
+            rid: osx-x64
+
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v6
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        global-json-file: global.json
+
+    - name: Restore NuGet packages
+      run: dotnet restore --verbosity minimal
+
+    - name: Publish NativeAOT binaries
+      run: dotnet publish ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj --configuration Release --runtime ${{ matrix.rid }} /p:PublishNativeAot=true --output ./artifacts/nativeaot/${{ matrix.rid }}
+      working-directory: ./
+
+    - name: Smoke test NativeAOT binary
+      shell: bash
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          ./artifacts/nativeaot/${{ matrix.rid }}/Karls.BetterSecretsTool.exe --help
+        else
+          ./artifacts/nativeaot/${{ matrix.rid }}/Karls.BetterSecretsTool --help
+        fi
+
+    - name: Upload NativeAOT artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: nativeaot-${{ matrix.rid }}
+        path: ./artifacts/nativeaot/${{ matrix.rid }}/**
+        if-no-files-found: error
+
 
   publish:
     name: NuGet Publish
