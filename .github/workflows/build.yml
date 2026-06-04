@@ -76,29 +76,6 @@ jobs:
       with:
         name: net-test-results
         path: ./
-
-    - name: Publish .NET tests
-      uses: dorny/test-reporter@v2
-      with:
-        name: 🧪 .NET test results
-        path: ./**/*.trx
-        reporter: dotnet-trx
-
-    - name: Create history folder
-      run: mkdir ./coverage-history
-      working-directory: ./
-
-    - name: Download historial coverage
-      uses: dawidd6/action-download-artifact@v20
-      with:
-        workflow_conclusion: success
-        branch: ${{ github.head_ref }}
-        name: coverage-history
-        path: ./coverage-history
-        check_artifacts:  true
-        search_artifacts: true
-        if_no_artifact_found: ignore
-
     - name: Install .NET
       uses: actions/setup-dotnet@v5
       with:
@@ -109,7 +86,6 @@ jobs:
       with:
         reports: './**/*.cobertura.xml;./**/cobertura-coverage.xml'
         targetdir: 'coverage-report'
-        historydir: 'coverage-history'
         reporttypes: 'MarkdownSummary;Cobertura'
         assemblyfilters: '-xunit*'
         verbosity: 'Info'
@@ -127,22 +103,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: coverage-report/Cobertura.xml
-
-    - name: Upload coverage history
-      uses: actions/upload-artifact@v7
-      with:
-        name: coverage-history
-        path: coverage-history
-
-    - name: Publish code coverage summary to run
-      uses: LouisBrunner/checks-action@v2.0.0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        conclusion: ${{ job.status }}
-        name: 📝 Code coverage
-        output: "{\"summary\":\"Summary of code coverage. For more detailed information, download the full artifact from the run.\"}"
-        output_text_description_file: ./coverage-report/Summary.md
-
   net-build:
     name: .NET build
     runs-on: ubuntu-latest
