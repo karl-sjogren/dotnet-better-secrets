@@ -20,22 +20,14 @@ As a global tool:
 dotnet tool install -g Karls.BetterSecretsTool
 ```
 
-As a NativeAOT binary (no .NET runtime required):
-
-1. Download the archive for your platform from the [GitHub Releases](https://github.com/karl-sjogren/dotnet-better-secrets/releases) page.
-2. Extract the archive.
-3. Run the executable from the extracted folder:
-   - Linux/macOS: `./Karls.BetterSecretsTool --help`
-   - Windows: `.\Karls.BetterSecretsTool.exe --help`
-
 > [!NOTE]
 > While a global tool is convenient since it is always available, a local
 > tool ensures that everyone working on the project uses the same version of
 > the tool and that new versions are picked up automatically by tools such
 > as Dependabot/Renovatebot.
 >
-> The NuGet .NET tool remains the primary distribution format. NativeAOT
-> binaries are published as an additional option.
+> NativeAOT binaries are distributed inside the NuGet .NET tool package.
+> There is no separate NativeAOT binary distribution channel.
 
 ### NativeAOT support
 
@@ -45,9 +37,7 @@ NativeAOT binaries are currently published for:
 - `win-x64`
 - `osx-x64`
 
-NativeAOT support is delivered as release artifacts in parallel with the NuGet
-tool package. Pre-release tags (for example `1.2.0-preview.1`) are published as
-GitHub pre-releases for rollout and validation before broader adoption.
+NativeAOT support is distributed only through the NuGet tool package.
 
 Local NativeAOT validation command:
 

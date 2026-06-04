@@ -133,7 +133,7 @@ jobs:
         if-no-files-found: error
 
   net-nativeaot:
-    name: .NET NativeAOT publish (${{ matrix.rid }})
+    name: .NET NativeAOT validation (${{ matrix.rid }})
     runs-on: ${{ matrix.os }}
     needs: [ net-test ]
 
@@ -172,14 +172,6 @@ jobs:
         else
           ./artifacts/nativeaot/${{ matrix.rid }}/Karls.BetterSecretsTool --help
         fi
-
-    - name: Upload NativeAOT artifacts
-      uses: actions/upload-artifact@v7
-      with:
-        name: nativeaot-${{ matrix.rid }}
-        path: ./artifacts/nativeaot/${{ matrix.rid }}/**
-        if-no-files-found: error
-
 
   publish:
     name: NuGet Publish

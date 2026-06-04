@@ -9,68 +9,14 @@ permissions:
   contents: write
 
 jobs:
-  nativeaot-build:
-    name: Build NativeAOT (${{ matrix.rid }})
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            rid: linux-x64
-          - os: windows-latest
-            rid: win-x64
-          - os: macos-13
-            rid: osx-x64
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v6
-
-      - name: Install .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          global-json-file: global.json
-
-      - name: Restore NuGet packages
-        run: dotnet restore --verbosity minimal
-
-      - name: Publish NativeAOT binaries
-        run: dotnet publish ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj --configuration Release --runtime ${{ matrix.rid }} /p:PublishNativeAot=true --output ./artifacts/nativeaot/${{ matrix.rid }}
-
-      - name: Archive NativeAOT binaries
-        shell: bash
-        run: |
-          mkdir -p ./artifacts/release
-          tar -czf ./artifacts/release/nativeaot-${{ matrix.rid }}.tar.gz -C ./artifacts/nativeaot ${{ matrix.rid }}
-
-      - name: Upload archived NativeAOT binaries
-        uses: actions/upload-artifact@v7
-        with:
-          name: nativeaot-release-${{ matrix.rid }}
-          path: ./artifacts/release/nativeaot-${{ matrix.rid }}.tar.gz
-          if-no-files-found: error
-
   tagged-release:
     name: 'Create release'
-    needs: [ nativeaot-build ]
 
     runs-on: 'ubuntu-latest'
 
     steps:
-      - name: Download NativeAOT artifacts
-        uses: actions/download-artifact@v8
-        with:
-          pattern: nativeaot-release-*
-          merge-multiple: true
-          path: ./release-artifacts
-
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           make_latest: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          files: |
-            ./release-artifacts/nativeaot-*.tar.gz
