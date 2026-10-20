@@ -108,6 +108,8 @@ jobs:
     runs-on: ubuntu-latest
 
     needs: [ net-test ]
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
     - name: Checkout sources
@@ -121,7 +123,15 @@ jobs:
     - name: Restore NuGet packages
       run: dotnet restore --verbosity minimal
 
-    - name: Publish application
+    - name: Read package version
+      id: version
+      run: |
+        version="$(dotnet msbuild ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj -getProperty:Version)"
+        test -n "$version"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "VERSION=$version" >> "$GITHUB_ENV"
+
+    - name: Pack root tool
       run: dotnet pack --output ./artifacts --configuration Release ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj
       working-directory: ./
 
@@ -131,7 +141,7 @@ jobs:
 
     - name: Install and smoke test platform-independent tool
       run: |
-        dotnet tool install --tool-path ./artifacts/tool --add-source ./artifacts Karls.BetterSecretsTool.any --version 1.1.0
+        dotnet tool install --tool-path ./artifacts/tool Karls.BetterSecretsTool.any --version "$VERSION"
         ./artifacts/tool/dotnet-better-secrets --help
 
     - name: Upload root and platform-independent packages
@@ -144,7 +154,9 @@ jobs:
   net-nativeaot:
     name: .NET NativeAOT tool package (${{ matrix.rid }})
     runs-on: ${{ matrix.os }}
-    needs: [ net-test ]
+    needs: [ net-test, net-build ]
+    env:
+      VERSION: ${{ needs.net-build.outputs.version }}
 
     strategy:
       fail-fast: false
@@ -169,13 +181,19 @@ jobs:
     - name: Restore NuGet packages
       run: dotnet restore --verbosity minimal
 
+    - name: Download root tool packages
+      uses: actions/download-artifact@v8
+      with:
+        name: packages-root
+        path: ./artifacts/
+
     - name: Pack NativeAOT tool
-      run: dotnet pack ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj --configuration Release --runtime ${{ matrix.rid }} --output ./artifacts/packages
+      run: dotnet pack ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj --configuration Release --runtime ${{ matrix.rid }} --output ./artifacts
 
     - name: Install and smoke test NativeAOT tool
       shell: bash
       run: |
-        dotnet tool install --tool-path ./artifacts/tool --add-source ./artifacts/packages Karls.BetterSecretsTool.${{ matrix.rid }} --version 1.1.0
+        dotnet tool install --tool-path ./artifacts/tool Karls.BetterSecretsTool --version "$VERSION"
         if [ "${{ runner.os }}" = "Windows" ]; then
           ./artifacts/tool/dotnet-better-secrets.exe --help
         else
@@ -186,7 +204,7 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: packages-${{ matrix.rid }}
-        path: ./artifacts/packages/*.nupkg
+        path: ./artifacts/Karls.BetterSecretsTool.${{ matrix.rid }}.${{ needs.net-build.outputs.version }}.nupkg
         if-no-files-found: error
 
   publish:
