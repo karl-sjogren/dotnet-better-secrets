@@ -190,15 +190,26 @@ jobs:
     - name: Pack NativeAOT tool
       run: dotnet pack ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj --configuration Release --runtime ${{ matrix.rid }} --output ./artifacts
 
-    - name: Install and smoke test NativeAOT tool
-      shell: bash
+    - name: Install NativeAOT tool
+      run: dotnet tool install --tool-path ./artifacts/tool Karls.BetterSecretsTool --version ${{ needs.net-build.outputs.version }}
+
+    - name: Smoke test NativeAOT tool (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
       run: |
-        dotnet tool install --tool-path ./artifacts/tool Karls.BetterSecretsTool --version "$VERSION"
-        if [ "${{ runner.os }}" = "Windows" ]; then
-          ./artifacts/tool/dotnet-better-secrets.exe --help
-        else
-          ./artifacts/tool/dotnet-better-secrets --help
-        fi
+        $entryPoint = Get-ChildItem -LiteralPath ./artifacts/tool/.store -Filter Karls.BetterSecretsTool.exe -File -Recurse | Select-Object -First 1
+        if ($null -eq $entryPoint) {
+          throw 'The installed NativeAOT entrypoint Karls.BetterSecretsTool.exe was not found.'
+        }
+        & $entryPoint.FullName --help
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+    - name: Smoke test NativeAOT tool (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: ./artifacts/tool/dotnet-better-secrets --help
 
     - name: Upload NativeAOT package
       uses: actions/upload-artifact@v7
