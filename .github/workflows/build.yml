@@ -108,6 +108,8 @@ jobs:
     runs-on: ubuntu-latest
 
     needs: [ net-test ]
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
     - name: Checkout sources
@@ -121,21 +123,104 @@ jobs:
     - name: Restore NuGet packages
       run: dotnet restore --verbosity minimal
 
-    - name: Publish application
+    - name: Read package version
+      id: version
+      run: |
+        version="$(dotnet msbuild ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj -getProperty:Version)"
+        test -n "$version"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "VERSION=$version" >> "$GITHUB_ENV"
+
+    - name: Pack root tool
       run: dotnet pack --output ./artifacts --configuration Release ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj
       working-directory: ./
 
-    - name: Upload packages
+    - name: Pack platform-independent tool
+      run: dotnet pack --runtime any --output ./artifacts --configuration Release ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj
+      working-directory: ./
+
+    - name: Install and smoke test platform-independent tool
+      run: |
+        dotnet tool install --tool-path ./artifacts/tool Karls.BetterSecretsTool.any --version "$VERSION"
+        ./artifacts/tool/dotnet-better-secrets --help
+
+    - name: Upload root and platform-independent packages
       uses: actions/upload-artifact@v7
       with:
-        name: packages
+        name: packages-root
         path: ./artifacts/*.nupkg
         if-no-files-found: error
 
+  net-nativeaot:
+    name: .NET NativeAOT tool package (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    needs: [ net-test, net-build ]
+    env:
+      VERSION: ${{ needs.net-build.outputs.version }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+          - os: macos-latest
+            rid: osx-x64
+
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v7
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        global-json-file: global.json
+
+    - name: Restore NuGet packages
+      run: dotnet restore --verbosity minimal
+
+    - name: Download root tool packages
+      uses: actions/download-artifact@v8
+      with:
+        name: packages-root
+        path: ./artifacts/
+
+    - name: Pack NativeAOT tool
+      run: dotnet pack ./src/Karls.BetterSecretsTool/Karls.BetterSecretsTool.csproj --configuration Release --runtime ${{ matrix.rid }} --output ./artifacts
+
+    - name: Install NativeAOT tool
+      run: dotnet tool install --tool-path ./artifacts/tool Karls.BetterSecretsTool --version ${{ needs.net-build.outputs.version }}
+
+    - name: Smoke test NativeAOT tool (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $entryPoint = Get-ChildItem -LiteralPath ./artifacts/tool/.store -Filter Karls.BetterSecretsTool.exe -File -Recurse | Select-Object -First 1
+        if ($null -eq $entryPoint) {
+          throw 'The installed NativeAOT entrypoint Karls.BetterSecretsTool.exe was not found.'
+        }
+        & $entryPoint.FullName --help
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+    - name: Smoke test NativeAOT tool (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: ./artifacts/tool/dotnet-better-secrets --help
+
+    - name: Upload NativeAOT package
+      uses: actions/upload-artifact@v7
+      with:
+        name: packages-${{ matrix.rid }}
+        path: ./artifacts/Karls.BetterSecretsTool.${{ matrix.rid }}.${{ needs.net-build.outputs.version }}.nupkg
+        if-no-files-found: error
 
   publish:
     name: NuGet Publish
-    needs: net-build
+    needs: [ net-build, net-nativeaot ]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
@@ -153,7 +238,8 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v8
       with:
-        name: packages
+        pattern: packages-*
+        merge-multiple: true
         path: ./artifacts/
 
     - name: Install .NET

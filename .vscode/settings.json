@@ -7,6 +7,5 @@
     "**/tmp": true,
     "**/.yarn/cache": true,
     ".vs/": true
-  },
-  "dotnet.defaultSolution": "Karls.BetterSecretsTools.slnx",
+  }
 }

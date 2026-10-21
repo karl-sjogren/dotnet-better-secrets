@@ -19,7 +19,7 @@ public static class Program {
             tool.Run(args);
         } catch(Exception ex) {
             console.MarkupLineInterpolated($"[red]Fatal Error:[/]");
-            console.WriteException(ex, ExceptionFormats.ShortenEverything);
+            console.MarkupLineInterpolated($"[red]{Markup.Escape(ex.ToString())}[/]");
         }
     }
 }

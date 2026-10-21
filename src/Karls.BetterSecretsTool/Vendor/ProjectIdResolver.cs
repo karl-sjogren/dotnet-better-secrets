@@ -97,13 +97,10 @@ internal sealed class ProjectIdResolver : IProjectIdResolver {
     }
 
     private string? FindTargetsFile() {
-        var assemblyDir = _fileSystem.Path.GetDirectoryName(typeof(ProjectIdResolver).Assembly.Location);
         var searchPaths = new[]
         {
                 _fileSystem.Path.Combine(AppContext.BaseDirectory, "assets"),
-                _fileSystem.Path.Combine(assemblyDir!, "assets"),
                 AppContext.BaseDirectory,
-                assemblyDir
             };
 
         var targetPath = searchPaths.Select(p => _fileSystem.Path.Combine(p!, "SecretManager.targets")).FirstOrDefault(_fileSystem.File.Exists);

@@ -25,6 +25,22 @@ dotnet tool install -g Karls.BetterSecretsTool
 > tool ensures that everyone working on the project uses the same version of
 > the tool and that new versions are picked up automatically by tools such
 > as Dependabot/Renovatebot.
+>
+> Installing this tool requires the .NET 10 SDK. NativeAOT packages are selected
+> for supported platforms; other platforms use the framework-dependent package
+> and require a compatible .NET runtime.
+
+### NativeAOT support
+
+NativeAOT binaries are currently published for:
+
+- `linux-x64`
+- `win-x64`
+- `osx-x64`
+
+NativeAOT packages are published for the supported runtime identifiers above.
+The NuGet tool package also includes a platform-independent, framework-dependent
+fallback for other platforms.
 
 ## Usage
 
