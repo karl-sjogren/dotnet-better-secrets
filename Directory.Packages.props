@@ -27,7 +27,7 @@
     <PackageVersion Include="Spectre.Console.Json" Version="0.56.0" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.55.2" />
     <PackageVersion Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
-    <PackageVersion Include="TestableIO.System.IO.Abstractions.Wrappers" Version="22.1.1" />
+    <PackageVersion Include="TestableIO.System.IO.Abstractions.Wrappers" Version="22.3.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
   </ItemGroup>
