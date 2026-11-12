@@ -36,7 +36,7 @@ NativeAOT binaries are currently published for:
 
 - `linux-x64`
 - `win-x64`
-- `osx-x64`
+- `osx-arm64`
 
 NativeAOT packages are published for the supported runtime identifiers above.
 The NuGet tool package also includes a platform-independent, framework-dependent
