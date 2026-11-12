@@ -149,7 +149,9 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: packages-root
-        path: ./artifacts/*.nupkg
+        path: |
+          ./artifacts/Karls.BetterSecretsTool.${{ env.VERSION }}.nupkg
+          ./artifacts/Karls.BetterSecretsTool.any.${{ env.VERSION }}.nupkg
         if-no-files-found: error
 
   net-nativeaot:
