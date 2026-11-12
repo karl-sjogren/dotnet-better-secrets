@@ -17,7 +17,7 @@ internal class CommandLineParser : ICommandLineParser {
 
         for(var i = 0; i < args.Length; i++) {
             var arg = args[i];
-            if(!arg.StartsWith('-')) {
+            if(!arg.StartsWith('-', StringComparison.Ordinal)) {
                 workingDirectory = args[i];
             } else if(arg == "-i" || arg == "--id") {
                 if(i + 1 < args.Length) {
@@ -33,7 +33,7 @@ internal class CommandLineParser : ICommandLineParser {
                 return new CommandLineOptions(null, null, null, true);
             } else {
                 // Skip the next argument if it does not start with '-'
-                if(i + 1 < args.Length && !args[i + 1].StartsWith('-')) {
+                if(i + 1 < args.Length && !args[i + 1].StartsWith('-', StringComparison.Ordinal)) {
                     i++;
                 }
             }

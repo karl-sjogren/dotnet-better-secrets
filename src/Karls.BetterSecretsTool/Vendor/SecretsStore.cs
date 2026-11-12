@@ -18,7 +18,6 @@ namespace Karls.BetterSecretsTool.Vendor;
 public class SecretsStore : ISecretsStore {
     private readonly IDictionary<string, string> _secrets;
     private readonly IFileSystem _fileSystem;
-    private readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
     public SecretsStore(string userSecretsId, IFileSystem? fileSystem = null) {
         ArgumentNullException.ThrowIfNull(userSecretsId);
@@ -82,7 +81,7 @@ public class SecretsStore : ISecretsStore {
             }
         }
 
-        var jsonContent = JsonSerializer.Serialize(contents, _jsonSerializerOptions);
+        var jsonContent = JsonSerializer.Serialize(contents, global::Karls.BetterSecretsTool.BetterSecretsJsonSerializerContext.Default.DictionaryStringString);
         _fileSystem.File.WriteAllText(SecretsFilePath, jsonContent, Encoding.UTF8);
     }
 
